@@ -1,4 +1,4 @@
-package by.niruin.ticketRegistrationApp.domain;
+package domain;
 
 public enum ServiceClass {
     ECONOMY,

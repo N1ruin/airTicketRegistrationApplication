@@ -1,4 +1,4 @@
-package by.niruin.ticketRegistrationApp.domain;
+package domain;
 
 import java.time.LocalDate;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package by.niruin.ticketRegistrationApp.domain;
+package domain;
 
 public class Airport {
     private Long id;
