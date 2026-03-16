@@ -8,7 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import static constant.AttributeName.DATA_SOURCE;
-@WebListener
+
 public class DestroyServletContextListener implements ServletContextListener {
     private static final Logger log = LogManager.getLogger(DestroyServletContextListener.class);
 

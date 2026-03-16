@@ -5,10 +5,10 @@ import domain.User;
 import dto.user.UserSignUpRequest;
 import sequrity.PasswordEncoder;
 
-public class UserSignUpMapper implements Mapper<UserSignUpRequest, User> {
+public class UserSignUpRequestMapper implements Mapper<UserSignUpRequest, User> {
     private final PasswordEncoder passwordEncoder;
 
-    public UserSignUpMapper(PasswordEncoder passwordEncoder) {
+    public UserSignUpRequestMapper(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
     }
 

@@ -19,7 +19,7 @@ public class HttpHelper {
     public <T> T getRequestBody(HttpServletRequest request, Class<T> targetClass) throws IOException {
         try {
             return objectMapper.readValue(request.getInputStream(), targetClass);
-        } catch (IOException e) {
+        }  catch (IOException e) {
             log.error("Deserialization request body error", e);
             throw e;
         }
@@ -27,7 +27,6 @@ public class HttpHelper {
 
     public <T> void writeResponseBody(HttpServletResponse response, T object) {
         try {
-            response.setContentType("application/json");
             response.getOutputStream().write(objectMapper.writeValueAsBytes(object));
         } catch (Exception e) {
             log.error("Error write response body", e);

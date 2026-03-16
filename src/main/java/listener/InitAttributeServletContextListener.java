@@ -1,14 +1,26 @@
 package listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import constant.AttributeName;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
-import jakarta.servlet.annotation.WebListener;
+import mapper.user.UserAuthenticationResponseMapper;
+import mapper.user.UserResultSetMapper;
+import mapper.user.UserSignUpRequestMapper;
+import mapper.user.UserSignUpResponseMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.w3c.dom.ls.LSOutput;
+import repository.ConnectionHelper;
+import repository.TransactionHelper;
+import repository.impl.UserRepositoryImpl;
 import sequrity.PasswordEncoder;
+import service.HttpHelper;
 import service.MigrationService;
+import service.UserService;
+import validation.UserValidationService;
 
 
 import javax.sql.DataSource;
@@ -17,7 +29,6 @@ import java.util.Properties;
 
 import static constant.AttributeName.*;
 
-@WebListener
 public class InitAttributeServletContextListener implements ServletContextListener {
     private static final String DATASOURCE_PROPERTIES_PATH = "datasource.properties";
     private static final Logger log = LogManager.getLogger(InitAttributeServletContextListener.class);
@@ -39,6 +50,40 @@ public class InitAttributeServletContextListener implements ServletContextListen
 
         var passwordEncoder = new PasswordEncoder();
         context.setAttribute(PASSWORD_ENCODER, passwordEncoder);
+
+        var objectMapper = new ObjectMapper();
+        context.setAttribute(OBJECT_MAPPER, objectMapper);
+
+        var httpHelper = new HttpHelper(objectMapper);
+        context.setAttribute(HTTP_HELPER, httpHelper);
+
+        var connectionHelper = new ConnectionHelper(dataSource);
+        context.setAttribute(CONNECTION_HELPER, connectionHelper);
+
+        var userResultSetMapper = new UserResultSetMapper();
+        context.setAttribute(USER_RESULT_SET_MAPPER, userResultSetMapper);
+
+        var userRepository = new UserRepositoryImpl(connectionHelper, userResultSetMapper);
+        context.setAttribute(USER_REPOSITORY, userRepository);
+
+        var userSignUpRequestMapper = new UserSignUpRequestMapper(passwordEncoder);
+        context.setAttribute(USER_SIGN_UP_REQUEST_MAPPER, userSignUpRequestMapper);
+
+        var userSignUpResponseMapper = new UserSignUpResponseMapper();
+        context.setAttribute(USER_SIGN_UP_RESPONSE_MAPPER, userSignUpResponseMapper);
+
+        var transactionHelper = new TransactionHelper(connectionHelper);
+        context.setAttribute(TRANSACTION_HELPER, transactionHelper);
+
+        var userValidationService = new UserValidationService();
+        context.setAttribute(USER_VALIDATION_SERVICE, userValidationService);
+
+        var userAuthenticationResponseMapper = new UserAuthenticationResponseMapper();
+        context.setAttribute(USER_AUTH_RESPONSE_MAPPER, userAuthenticationResponseMapper);
+
+        var userService = new UserService(userRepository, transactionHelper, userSignUpRequestMapper,
+                userSignUpResponseMapper, userValidationService, passwordEncoder, userAuthenticationResponseMapper);
+        context.setAttribute(USER_SERVICE, userService);
 
         log.info("Attribute initialization finish");
     }

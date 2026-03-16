@@ -1,4 +1,4 @@
-CREATE SCHEMA tickets_application;
+CREATE SCHEMA IF NOT EXISTS tickets_application;
 
 CREATE TABLE IF NOT EXISTS tickets_application.passenger
 (
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS tickets_application.flight
     free_seats           INTEGER   NOT NULL
 );
 
-CREATE TABLE tickets_application.ticket
+CREATE TABLE IF NOT EXISTS tickets_application.ticket
 (
     id              BIGSERIAL PRIMARY KEY,
     flight_id       BIGINT      NOT NULL REFERENCES tickets_application.flight (id),

@@ -3,12 +3,10 @@ package listener;
 import constant.AttributeName;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
-import jakarta.servlet.annotation.WebListener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.MigrationService;
 
-@WebListener
 public class MigrationContextListener implements ServletContextListener {
     private static final Logger log = LogManager.getLogger(MigrationContextListener.class);
 
