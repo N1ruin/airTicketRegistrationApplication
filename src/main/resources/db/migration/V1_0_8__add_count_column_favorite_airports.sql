@@ -1,0 +1,1 @@
+ALTER TABLE tickets_application.passenger_favorite_airports ADD COLUMN flights_count INTEGER DEFAULT 0 NOT NULL;

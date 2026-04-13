@@ -1,0 +1,155 @@
+package servlet;
+
+import dto.airport.CreateAirportRequest;
+import dto.airport.UpdateAirportRequest;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import converter.airport.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import service.AirportService;
+import service.HttpHelper;
+import validation.AirportValidationService;
+import validation.RequestParameterValidationService;
+
+import java.io.IOException;
+
+import static constant.AttributeName.*;
+
+@WebServlet("/api/v1/airport")
+public class AirportServlet extends HttpServlet {
+    private static final Logger log = LogManager.getLogger(AirportServlet.class);
+    private HttpHelper httpHelper;
+    private AirportService airportService;
+    private AirportValidationService airportValidationService;
+    private CreateAirportRequestConverter createAirportRequestConverter;
+    private CreateAirportResponseConverter createAirportResponseConverter;
+    private UpdateAirportRequestConverter updateAirportRequestConverter;
+    private UpdateAirportResponseConverter updateAirportResponseConverter;
+    private AirportConverter airportConverter;
+    private RequestParameterExtractor parameterExtractor;
+    private RequestParameterValidationService requestParameterValidationService;
+    private PermissionChecker permissionChecker;
+
+    @Override
+    public void init(ServletConfig config) {
+        log.info("Servlet {} initialization start", getClass().getSimpleName());
+
+        var context = config.getServletContext();
+        httpHelper = (HttpHelper) context.getAttribute(HTTP_HELPER);
+        airportService = (AirportService) context.getAttribute(AIRPORT_SERVICE);
+        airportValidationService = (AirportValidationService) context.getAttribute(AIRPORT_VALIDATION_SERVICE);
+        createAirportRequestConverter = (CreateAirportRequestConverter) context.getAttribute(CREATE_AIRPORT_REQUEST_CONVERTER);
+        createAirportResponseConverter = (CreateAirportResponseConverter) context.getAttribute(CREATE_AIRPORT_RESPONSE_CONVERTER);
+        updateAirportRequestConverter = (UpdateAirportRequestConverter) context.getAttribute(UPDATE_AIRPORT_REQUEST_CONVERTER);
+        updateAirportResponseConverter = (UpdateAirportResponseConverter) context.getAttribute(UPDATE_AIRPORT_RESPONSE_CONVERTER);
+        airportConverter = (AirportConverter) context.getAttribute(AIRPORT_CONVERTER);
+        parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
+        requestParameterValidationService =
+                (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
+        permissionChecker = (PermissionChecker) context.getAttribute(PERMISSION_CHECKER);
+
+
+        log.info("Servlet {} initialization finish", getClass().getSimpleName());
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (!permissionChecker.isAdmin(req)) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+
+            return;
+        }
+
+        var request = httpHelper.getRequestBody(req, CreateAirportRequest.class);
+
+        airportValidationService.validateCreateRequest(request);
+
+        var airport = createAirportRequestConverter.convert(request);
+
+        var savedAirport = airportService.save(airport);
+
+        var dto = createAirportResponseConverter.convert(savedAirport);
+
+        resp.setStatus(HttpServletResponse.SC_CREATED);
+        httpHelper.writeResponseBody(resp, dto);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        var id = parameterExtractor.extractId(req);
+
+        if (id == null) {
+            findAll(resp);
+        } else {
+            findById(resp, id);
+        }
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (!permissionChecker.isAdmin(req)) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+
+            return;
+        }
+
+        var request = httpHelper.getRequestBody(req, UpdateAirportRequest.class);
+
+        airportValidationService.validateUpdateRequest(request);
+
+        var airport = updateAirportRequestConverter.convert(request);
+
+        var updatedAirport = airportService.update(airport);
+
+        var dto = updateAirportResponseConverter.convert(updatedAirport);
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        httpHelper.writeResponseBody(resp, dto);
+    }
+
+    @Override
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (!permissionChecker.isAdmin(req)) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+
+            return;
+        }
+
+        var id = parameterExtractor.extractId(req);
+
+        if (id == null) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            httpHelper.writeResponseBody(resp, "Parameter 'id' is required for deletion");
+            return;
+        }
+
+        requestParameterValidationService.validateId(id);
+
+        airportService.delete(id);
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+    }
+
+    private void findAll(HttpServletResponse resp) throws IOException {
+        var airports = airportService.findAll();
+        var airportDtos = airportConverter.convertAll(airports);
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        httpHelper.writeResponseBody(resp, airportDtos);
+    }
+
+    private void findById(HttpServletResponse resp, Long id) throws IOException {
+        requestParameterValidationService.validateId(id);
+
+        var airport = airportService.findById(id);
+
+        var dto = airportConverter.convert(airport);
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        httpHelper.writeResponseBody(resp, dto);
+    }
+}

@@ -1,0 +1,225 @@
+package unit.service;
+
+import domain.Address;
+import domain.Airport;
+import exception.EntityAlreadyExistException;
+import exception.EntityNotFoundException;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import repository.AddressRepository;
+import repository.AirportRepository;
+import repository.TransactionHelper;
+import service.AddressService;
+import service.AirportService;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class AirportServiceTest {
+    @Mock
+    private AddressService addressService;
+    @Mock
+    private AirportRepository airportRepository;
+    @Mock
+    private AddressRepository addressRepository;
+    @Mock
+    private TransactionHelper transactionHelper;
+
+    @InjectMocks
+    private AirportService airportService;
+
+    @Test
+    void saveSuccess() {
+        var airport = getAirport();
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findByCode(airport.getCode())).thenReturn(Optional.empty());
+        when(airportRepository.save(any(Airport.class)))
+                .thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        var result = airportService.save(airport);
+
+        assertNotNull(result);
+        assertEquals(result, airport);
+        assertEquals(result.getId(), airport.getId());
+        verify(addressService).save(airport.getAddress());
+        verify(airportRepository).save(airport);
+    }
+
+    @Test
+    void saveFailureAddressExist() {
+        var airport = getAirport();
+
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findByCode(airport.getCode())).thenReturn(Optional.empty());
+        when(addressRepository.findByCountryAndCityAndStreetAndHouseNumber(airport.getAddress())).thenReturn(Optional.of(airport.getAddress()));
+
+        assertThrows(EntityAlreadyExistException.class, () -> airportService.save(airport));
+
+        verify(airportRepository).findByCode(airport.getCode());
+        verify(addressRepository).findByCountryAndCityAndStreetAndHouseNumber(airport.getAddress());
+    }
+
+    @Test
+    void saveFailureAirportExist() {
+        var airport = getAirport();
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findByCode(airport.getCode())).thenReturn(Optional.of(new Airport()));
+
+        assertThrows(EntityAlreadyExistException.class, () -> airportService.save(airport));
+
+        verify(airportRepository).findByCode(airport.getCode());
+    }
+
+    @Test
+    void findByIdSuccess() {
+        var airport = getAirport();
+        airport.setId(1);
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(airport));
+
+        var result = airportService.findById(airport.getId());
+
+        assertEquals(airport, result);
+        verify(airportRepository).findById(airport.getId());
+    }
+
+    @Test
+    void findByIdNotFound() {
+        var airport = getAirport();
+        airport.setId(100);
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> airportService.findById(airport.getId()));
+        verify(airportRepository).findById(airport.getId());
+    }
+
+    @Test
+    void findAllReturnOneAirport() {
+        var airport = getAirport();
+        var airports = List.of(airport);
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findAll()).thenReturn(airports);
+
+        var result = airportService.findAll();
+
+        assertEquals(1, result.size());
+        assertEquals(airports, result);
+        verify(airportRepository).findAll();
+    }
+
+    @Test
+    void findAllReturnEmptyList() {
+        var airports = new ArrayList<Airport>();
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findAll()).thenReturn(airports);
+
+        var result = airportService.findAll();
+
+        assertEquals(0, result.size());
+        assertEquals(airports, result);
+        verify(airportRepository).findAll();
+    }
+
+    @Test
+    void updateSuccess() {
+        var airport = getAirport();
+        var address = airport.getAddress();
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(airport));
+        airport.setName("Test");
+        airport.setCode("TST");
+        address.setCountry("Russia");
+        address.setCity("Moscow");
+
+        airportService.update(airport);
+
+        assertEquals("Test", airport.getName());
+        assertEquals("TST", airport.getCode());
+        assertEquals("Russia", airport.getAddress().getCountry());
+        assertEquals("Moscow", airport.getAddress().getCity());
+        verify(addressRepository).update(address);
+        verify(airportRepository).update(airport);
+
+    }
+
+    @Test
+    void updateFailureAirportNotFound() {
+        var airport = getAirport();
+        when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> airportService.update(airport));
+        verify(airportRepository).findById(airport.getId());
+    }
+
+    @Test
+    void deleteSuccessful() {
+        var airport = getAirport();
+        doAnswer(invocationOnMock -> {
+            Runnable runnable = invocationOnMock.getArgument(0);
+            runnable.run();
+            return null;
+        }).when(transactionHelper).executeInTransaction(any(Runnable.class));
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(airport));
+
+        airportService.delete(airport.getId());
+
+        verify(addressRepository).deleteById(airport.getAddress().getId());
+        verify(airportRepository).deleteById(airport.getId());
+    }
+
+    @Test
+    void deleteFailureAirportNotFound() {
+        var airport = getAirport();
+        doAnswer(invocationOnMock -> {
+            Runnable runnable = invocationOnMock.getArgument(0);
+            runnable.run();
+            return null;
+        }).when(transactionHelper).executeInTransaction(any(Runnable.class));
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.empty());
+
+
+        assertThrows(EntityNotFoundException.class, () -> airportService.delete(airport.getId()));
+    }
+
+    private Airport getAirport() {
+        var airport = new Airport();
+        airport.setCode("MSQ");
+        airport.setName("Minsk airport");
+        airport.setAddress(getAddress());
+        airport.setId(1);
+
+        return airport;
+    }
+
+    private Address getAddress() {
+        var address = new Address();
+        address.setCity("Minsk");
+        address.setCountry("Belarus");
+        address.setStreet("Test");
+        address.setHouseNumber(1);
+        address.setId(1);
+
+        return address;
+    }
+}
