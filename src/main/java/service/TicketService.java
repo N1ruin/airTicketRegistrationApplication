@@ -8,6 +8,7 @@ import exception.ValidationException;
 import repository.TicketRepository;
 import repository.TransactionHelper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class TicketService {
@@ -84,7 +85,7 @@ public class TicketService {
             ticket.setTicketStatus(TicketStatus.ACTIVE);
 
             passengerService.updateFavoriteAirports(passengerId, ticket.getFlight().getDepartureAirport().getCode());
-
+            ticket.setPurchaseDate(LocalDateTime.now());
             return ticketRepository.save(ticket);
         });
     }

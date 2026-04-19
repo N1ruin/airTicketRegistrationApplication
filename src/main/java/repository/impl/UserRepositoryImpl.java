@@ -1,7 +1,7 @@
 package repository.impl;
 
 import domain.User;
-import converter.user.UserResultSetMapper;
+import mapper.UserResultSetMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import repository.ConnectionHelper;

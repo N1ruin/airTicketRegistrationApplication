@@ -1,9 +1,7 @@
-package converter.user;
+package mapper;
 
 import domain.Role;
 import domain.User;
-import mapper.ResultSetListMapper;
-import mapper.ResultSetMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

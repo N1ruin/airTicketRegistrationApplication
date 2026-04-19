@@ -1,4 +1,4 @@
-package service;
+package unit.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import domain.User;
@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import service.HttpHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,12 +68,12 @@ class HttpHelperTest {
     }
 
     @Test
-    void writeResponseBodyFailureThrowIOException() throws IOException {
+    void writeResponseBodyFailureThrowsException() throws IOException {
         var user = new User();
         var mockOutputStream = mock(ServletOutputStream.class);
         when(httpServletResponse.getOutputStream()).thenReturn(mockOutputStream);
         when(objectMapper.writeValueAsBytes(any(User.class))).thenThrow(new RuntimeException());
 
-        assertDoesNotThrow(() -> httpHelper.writeResponseBody(httpServletResponse, user));
+        assertThrows(RuntimeException.class, () -> httpHelper.writeResponseBody(httpServletResponse, user));
     }
 }

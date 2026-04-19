@@ -2,7 +2,7 @@ package dto.user;
 
 import domain.Role;
 
-public record UserDto(long id,
+public record UserDto(Long id,
                       String email,
                       String firstName,
                       String lastName,

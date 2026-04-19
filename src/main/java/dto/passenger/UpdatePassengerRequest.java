@@ -12,6 +12,5 @@ public record UpdatePassengerRequest(Long id,
                                      boolean male,
                                      @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
                                      LocalDate birthDate,
-                                     PassportDto passportDto,
-                                     Long userId) {
+                                     PassportDto passportDto) {
 }

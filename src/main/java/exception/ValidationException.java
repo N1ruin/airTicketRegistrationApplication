@@ -20,4 +20,8 @@ public class ValidationException extends ApplicationException {
     public String getMessage() {
         return validationErrorMessages.toString();
     }
+
+    public List<String> getValidationErrorMessages() {
+        return validationErrorMessages;
+    }
 }

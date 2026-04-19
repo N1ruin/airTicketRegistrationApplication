@@ -16,6 +16,7 @@ public class AirportDtoConverter implements Converter<AirportDto, Airport> {
     public Airport convert(AirportDto dto) {
         var airport = new Airport();
 
+        airport.setId(dto.id());
         airport.setName(dto.name());
         airport.setCode(dto.code());
         var address = addressDtoConverter.convert(dto.address());

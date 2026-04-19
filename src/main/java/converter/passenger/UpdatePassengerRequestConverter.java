@@ -22,7 +22,6 @@ public class UpdatePassengerRequestConverter implements Converter<UpdatePassenge
         passenger.setFatherName(request.fatherName());
         passenger.setMale(request.male());
         passenger.setBirthDate(request.birthDate());
-        passenger.setUserId(request.userId());
 
         var passport = passportConverter.convert(request.passportDto());
         passenger.setPassport(passport);

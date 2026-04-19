@@ -3,6 +3,12 @@ package servlet;
 import converter.user.UserSignUpRequestConverter;
 import converter.user.UserSignUpResponseConverter;
 import dto.user.UserSignUpRequest;
+import dto.user.UserSignUpResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -42,6 +48,16 @@ public class SignUpServlet extends HttpServlet {
         log.info("Servlet {} initialization finish", getClass().getSimpleName());
     }
 
+    @Operation(
+            summary = "Регистрация нового пользователя",
+            description = "Создает пользователя и возвращает его ID",
+            requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = UserSignUpRequest.class))),
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Создано",
+                            content = @Content(schema = @Schema(implementation = UserSignUpResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Ошибка данных")
+            }
+    )
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         var request = httpHelper.getRequestBody(req, UserSignUpRequest.class);

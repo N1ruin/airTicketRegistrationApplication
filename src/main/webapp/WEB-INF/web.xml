@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app
+        xmlns="https://jakarta.ee/xml/ns/jakartaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+        https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+        version="6.1">
+
+    <display-name>Air Ticket Registration Application</display-name>
+    <servlet>
+        <servlet-name>OpenApiServlet</servlet-name>
+        <servlet-class>io.swagger.v3.jaxrs2.integration.OpenApiServlet</servlet-class>
+        <init-param>
+            <param-name>openapi.configuration.resourcePackages</param-name>
+            <param-value>servlet</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>OpenApiServlet</servlet-name>
+        <url-pattern>/openapi.json</url-pattern>
+    </servlet-mapping>
+    <listener>
+        <listener-class>listener.InitAttributeServletContextListener</listener-class>
+    </listener>
+    <listener>
+        <listener-class>listener.MigrationContextListener</listener-class>
+    </listener>
+    <listener>
+        <listener-class>listener.DestroyServletContextListener</listener-class>
+    </listener>
+    <filter>
+        <filter-name>globalExceptionHandlerFilter</filter-name>
+        <filter-class>filter.GlobalExceptionHandlerFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>charsetContentTypeFilter</filter-name>
+        <filter-class>filter.CharsetContentTypeFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>authFilter</filter-name>
+        <filter-class>filter.AuthorizationFilter</filter-class>
+    </filter>
+</web-app>

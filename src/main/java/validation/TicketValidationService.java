@@ -38,7 +38,7 @@ public class TicketValidationService {
         }
 
         if (baggageWeight < 0) {
-            errors.add("Carry on baggage weight cannot be null");
+            errors.add("Carry on baggage weight cannot be negative");
         }
     }
 }

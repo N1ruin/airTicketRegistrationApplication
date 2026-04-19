@@ -2,6 +2,7 @@ package service;
 
 import domain.Address;
 import exception.EntityAlreadyExistException;
+import exception.EntityNotFoundException;
 import repository.AddressRepository;
 import repository.TransactionHelper;
 
@@ -14,29 +15,45 @@ public class AddressService {
         this.addressRepository = addressRepository;
     }
 
-    public void save(Address address) {
-        saveTransactional(address);
+    public Address save(Address address) {
+        return saveTransactional(address);
     }
 
-    private void saveTransactional(Address address) {
-        transactionHelper.executeInTransaction(() -> {
+    private Address saveTransactional(Address address) {
+        return transactionHelper.executeInTransaction(() -> {
             var existingAddress = addressRepository.findByCountryAndCityAndStreetAndHouseNumber(address);
             if (existingAddress.isPresent()) {
                 throw new EntityAlreadyExistException("There is already an airport at address");
             }
 
-            addressRepository.save(address);
+            return addressRepository.save(address);
         });
     }
 
-    public void update(Address address) {
-        transactionHelper.executeInTransaction(() -> {
+    public Address update(Address address) {
+        return updateTransactional(address);
+    }
 
-            addressRepository.update(address);
+    private Address updateTransactional(Address address) {
+        return transactionHelper.executeInTransaction(() -> {
+            var existingAddress = addressRepository.findByCountryAndCityAndStreetAndHouseNumber(address);
+            if (existingAddress.isPresent()) {
+                throw new EntityAlreadyExistException("Address exist");
+            }
+
+            return addressRepository.update(address);
         });
     }
 
     public void deleteById(Long id) {
-        transactionHelper.executeInTransaction(() -> addressRepository.deleteById(id));
+        deleteTransactional(id);
+    }
+
+    private void deleteTransactional(Long id) {
+        transactionHelper.executeInTransaction(() -> {
+            addressRepository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Address with id %d not found".formatted(id)));
+            addressRepository.deleteById(id);
+        });
     }
 }

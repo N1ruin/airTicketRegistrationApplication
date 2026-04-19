@@ -20,8 +20,9 @@ public class TicketDtoConverter implements Converter<Ticket, TicketDto>, ListCon
 
     @Override
     public TicketDto convert(Ticket ticket) {
+        var ticketStatus = ticket.getTicketStatus();
         var ticketNumber = ticket.getTicketNumber();
-        var serviceClass = ticket.getServiceClass().name();
+        var serviceClass = ticket.getServiceClass();
         var seatNumber = ticket.getSeatNumber();
         var flightDto = flightConverter.convert(ticket.getFlight());
         var passengerDto = passengerDtoConverter.convert(ticket.getPassenger());
@@ -29,7 +30,7 @@ public class TicketDtoConverter implements Converter<Ticket, TicketDto>, ListCon
         var baggageWeight = ticket.getBaggageWeight();
         var carryOnBaggageWeight = ticket.getCarryOnBaggageWeight();
 
-        return new TicketDto(ticketNumber, serviceClass, seatNumber, flightDto, passengerDto, purchaseDate,
+        return new TicketDto(ticketStatus, ticketNumber, serviceClass, seatNumber, flightDto, passengerDto, purchaseDate,
                 baggageWeight, carryOnBaggageWeight);
     }
 

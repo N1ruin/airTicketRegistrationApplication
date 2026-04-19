@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public class Ticket {
     private Long id;
-    private Integer ticketNumber;
+    private Long ticketNumber;
     private TicketStatus ticketStatus;
     private ServiceClass serviceClass;
     private Integer seatNumber;
@@ -23,11 +23,11 @@ public class Ticket {
         this.id = id;
     }
 
-    public Integer getTicketNumber() {
+    public Long getTicketNumber() {
         return ticketNumber;
     }
 
-    public void setTicketNumber(Integer ticketNumber) {
+    public void setTicketNumber(Long ticketNumber) {
         this.ticketNumber = ticketNumber;
     }
 

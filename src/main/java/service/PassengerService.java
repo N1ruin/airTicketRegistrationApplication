@@ -58,6 +58,8 @@ public class PassengerService {
         return transactionHelper.executeInTransaction(() -> {
 
             var passport = passenger.getPassport();
+            passportService.checkPassportBySeriesAndNumberAndCitizenshipExist(passport.getSeries(), passport.getNumber(),
+                    passport.getCitizenship());
 
             passportService.save(passport);
             return passengerRepository.save(passenger);

@@ -1,16 +1,16 @@
 package domain;
 
 public class Airport {
-    private long id;
+    private Long id;
     private String code;
     private String name;
     private Address address;
 
-    public long getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

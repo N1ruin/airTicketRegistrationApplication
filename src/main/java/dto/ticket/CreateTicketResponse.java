@@ -6,7 +6,7 @@ import dto.passenger.PassengerDto;
 import java.time.LocalDateTime;
 
 public record CreateTicketResponse(Long id,
-                                   Integer ticketNumber,
+                                   Long ticketNumber,
                                    String serviceClass,
                                    Integer seatNumber,
                                    FlightDto flight,

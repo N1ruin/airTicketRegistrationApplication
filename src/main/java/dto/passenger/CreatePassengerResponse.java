@@ -12,5 +12,6 @@ public record CreatePassengerResponse(Long id,
                                       boolean male,
                                       @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
                                       LocalDate birthDate,
-                                      PassportDto passportDto) {
+                                      PassportDto passportDto,
+                                      Long userId) {
 }

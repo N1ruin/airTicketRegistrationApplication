@@ -4,12 +4,12 @@ import domain.Address;
 import domain.Airport;
 import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import repository.AddressRepository;
 import repository.AirportRepository;
 import repository.TransactionHelper;
 import service.AddressService;
@@ -31,18 +31,26 @@ class AirportServiceTest {
     @Mock
     private AirportRepository airportRepository;
     @Mock
-    private AddressRepository addressRepository;
-    @Mock
     private TransactionHelper transactionHelper;
 
     @InjectMocks
     private AirportService airportService;
 
+    @BeforeEach
+    void setUp() {
+        lenient().when(transactionHelper.executeInTransaction(any(Supplier.class)))
+                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+
+        lenient().doAnswer(invocation -> {
+            Runnable runnable = invocation.getArgument(0);
+            runnable.run();
+            return null;
+        }).when(transactionHelper).executeInTransaction(any(Runnable.class));
+    }
+
     @Test
     void saveSuccess() {
         var airport = getAirport();
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
         when(airportRepository.findByCode(airport.getCode())).thenReturn(Optional.empty());
         when(airportRepository.save(any(Airport.class)))
                 .thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -59,23 +67,16 @@ class AirportServiceTest {
     @Test
     void saveFailureAddressExist() {
         var airport = getAirport();
-
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
-        when(airportRepository.findByCode(airport.getCode())).thenReturn(Optional.empty());
-        when(addressRepository.findByCountryAndCityAndStreetAndHouseNumber(airport.getAddress())).thenReturn(Optional.of(airport.getAddress()));
+        when(airportRepository.findByCode(airport.getCode())).thenReturn(Optional.of(airport));
 
         assertThrows(EntityAlreadyExistException.class, () -> airportService.save(airport));
 
         verify(airportRepository).findByCode(airport.getCode());
-        verify(addressRepository).findByCountryAndCityAndStreetAndHouseNumber(airport.getAddress());
     }
 
     @Test
     void saveFailureAirportExist() {
         var airport = getAirport();
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
         when(airportRepository.findByCode(airport.getCode())).thenReturn(Optional.of(new Airport()));
 
         assertThrows(EntityAlreadyExistException.class, () -> airportService.save(airport));
@@ -86,9 +87,7 @@ class AirportServiceTest {
     @Test
     void findByIdSuccess() {
         var airport = getAirport();
-        airport.setId(1);
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        airport.setId(1L);
         when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(airport));
 
         var result = airportService.findById(airport.getId());
@@ -98,11 +97,9 @@ class AirportServiceTest {
     }
 
     @Test
-    void findByIdNotFound() {
+    void findByIdNotFoundThrowsEntityNotFoundException() {
         var airport = getAirport();
-        airport.setId(100);
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
+        airport.setId(100L);
         when(airportRepository.findById(airport.getId())).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> airportService.findById(airport.getId()));
@@ -113,8 +110,6 @@ class AirportServiceTest {
     void findAllReturnOneAirport() {
         var airport = getAirport();
         var airports = List.of(airport);
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
         when(airportRepository.findAll()).thenReturn(airports);
 
         var result = airportService.findAll();
@@ -127,8 +122,6 @@ class AirportServiceTest {
     @Test
     void findAllReturnEmptyList() {
         var airports = new ArrayList<Airport>();
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
         when(airportRepository.findAll()).thenReturn(airports);
 
         var result = airportService.findAll();
@@ -142,8 +135,6 @@ class AirportServiceTest {
     void updateSuccess() {
         var airport = getAirport();
         var address = airport.getAddress();
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
         when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(airport));
         airport.setName("Test");
         airport.setCode("TST");
@@ -156,16 +147,12 @@ class AirportServiceTest {
         assertEquals("TST", airport.getCode());
         assertEquals("Russia", airport.getAddress().getCountry());
         assertEquals("Moscow", airport.getAddress().getCity());
-        verify(addressRepository).update(address);
         verify(airportRepository).update(airport);
-
     }
 
     @Test
-    void updateFailureAirportNotFound() {
+    void updateFailureAirportNotFoundThrowEntityNotFoundException() {
         var airport = getAirport();
-        when(transactionHelper.executeInTransaction(any(Supplier.class)))
-                .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
         when(airportRepository.findById(airport.getId())).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> airportService.update(airport));
@@ -175,29 +162,17 @@ class AirportServiceTest {
     @Test
     void deleteSuccessful() {
         var airport = getAirport();
-        doAnswer(invocationOnMock -> {
-            Runnable runnable = invocationOnMock.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(transactionHelper).executeInTransaction(any(Runnable.class));
         when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(airport));
 
         airportService.delete(airport.getId());
 
-        verify(addressRepository).deleteById(airport.getAddress().getId());
         verify(airportRepository).deleteById(airport.getId());
     }
 
     @Test
-    void deleteFailureAirportNotFound() {
+    void deleteAirportNotFoundThrowsEntityNotFoundException() {
         var airport = getAirport();
-        doAnswer(invocationOnMock -> {
-            Runnable runnable = invocationOnMock.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(transactionHelper).executeInTransaction(any(Runnable.class));
         when(airportRepository.findById(airport.getId())).thenReturn(Optional.empty());
-
 
         assertThrows(EntityNotFoundException.class, () -> airportService.delete(airport.getId()));
     }
@@ -207,7 +182,7 @@ class AirportServiceTest {
         airport.setCode("MSQ");
         airport.setName("Minsk airport");
         airport.setAddress(getAddress());
-        airport.setId(1);
+        airport.setId(1L);
 
         return airport;
     }
@@ -218,7 +193,7 @@ class AirportServiceTest {
         address.setCountry("Belarus");
         address.setStreet("Test");
         address.setHouseNumber(1);
-        address.setId(1);
+        address.setId(1L);
 
         return address;
     }

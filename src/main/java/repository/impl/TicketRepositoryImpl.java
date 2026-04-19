@@ -103,7 +103,7 @@ public class TicketRepositoryImpl implements TicketRepository {
 
             if (resultSet.next()) {
                 ticket.setId(resultSet.getLong("id"));
-                ticket.setTicketNumber(resultSet.getInt("ticket_number"));
+                ticket.setTicketNumber(resultSet.getLong("ticket_number"));
             }
 
             return ticket;

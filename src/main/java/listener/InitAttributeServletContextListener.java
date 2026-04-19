@@ -3,19 +3,20 @@ package listener;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import converter.user.*;
-import jakarta.servlet.ServletContextEvent;
-import jakarta.servlet.ServletContextListener;
 import converter.address.AddressConverter;
 import converter.address.AddressDtoConverter;
-import mapper.*;
 import converter.airport.*;
 import converter.flight.*;
 import converter.passenger.*;
-import converter.passsport.PassportDtoConverter;
 import converter.passsport.PassportConverter;
+import converter.passsport.PassportDtoConverter;
 import converter.ticket.CreateTicketRequestConverter;
-
+import converter.user.UserDtoConverter;
+import converter.user.UserSignUpRequestConverter;
+import converter.user.UserSignUpResponseConverter;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
+import mapper.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import repository.ConnectionHelper;
@@ -27,7 +28,6 @@ import servlet.PermissionChecker;
 import servlet.RequestParameterExtractor;
 import servlet.SessionAttributeExtractor;
 import validation.*;
-
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -133,7 +133,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(CREATE_PASSENGER_REQUEST_CONVERTER, createPassengerRequestConverter);
         var passengerDtoConverter = new PassengerDtoConverter(passportDtoConverter);
         context.setAttribute(PASSENGER_DTO_CONVERTER, passengerDtoConverter);
-        var createPassengerResponseConverter = new CreatePassengerResponseConverter();
+        var createPassengerResponseConverter = new CreatePassengerResponseConverter(passportDtoConverter);
         context.setAttribute(CREATE_PASSENGER_RESPONSE_CONVERTER, createPassengerResponseConverter);
         var updatePassengerRequestConverter = new UpdatePassengerRequestConverter(passportConverter);
         context.setAttribute(UPDATE_PASSENGER_REQUEST_CONVERTER, updatePassengerRequestConverter);

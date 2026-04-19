@@ -7,7 +7,7 @@ import java.util.List;
 public class AddressValidationService {
     private static final String COUNTRY_PATTERN = "^[a-zA-Z\\s-]{1,70}$";
     private static final String CITY_PATTERN = "^[a-zA-Z0-9\\s-]{1,100}$";
-    private static final String STREET_PATTERN = "^[a-zA-ZёЁ0-9\\s-.,]{1,100}$";
+    private static final String STREET_PATTERN = "^[a-zA-Zа-яА-ЯёЁ0-9\\s-.,]{1,100}$";
 
     public void validate(AddressDto addressDto, List<String> errors) {
         validateCountry(addressDto.country(), errors);

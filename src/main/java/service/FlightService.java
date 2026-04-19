@@ -43,14 +43,10 @@ public class FlightService {
     private Flight saveTransactional(Flight flight) {
         return transactionHelper.executeInTransaction(() -> {
             var departureAirportCode = flight.getDepartureAirport().getCode();
-            airportRepository.findByCode(departureAirportCode)
-                    .orElseThrow(() -> new EntityNotFoundException("Airport with code %s not found"
-                            .formatted(departureAirportCode)));
+            findAirportByCode(departureAirportCode);
 
             var arrivalAirportCode = flight.getArrivalAirport().getCode();
-            airportRepository.findByCode(arrivalAirportCode)
-                    .orElseThrow(() -> new EntityNotFoundException("Airport with code %s not found"
-                            .formatted(arrivalAirportCode)));
+            findAirportByCode(arrivalAirportCode);
 
             return flightRepository.save(flight);
         });
@@ -67,9 +63,7 @@ public class FlightService {
 
     private Flight updateTransactional(Flight flight) {
         return transactionHelper.executeInTransaction(() -> {
-            flightRepository.findById(flight.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("Flight with id %d not found"
-                            .formatted(flight.getId())));
+            findByIdTransactional(flight.getId());
 
             return flightRepository.update(flight);
         });
@@ -82,5 +76,11 @@ public class FlightService {
 
             flightRepository.deleteById(id);
         });
+    }
+
+    private void findAirportByCode(String code) {
+        airportRepository.findByCode(code)
+                .orElseThrow(() -> new EntityNotFoundException("Airport with code %s not found"
+                        .formatted(code)));
     }
 }

@@ -12,6 +12,7 @@ import java.util.List;
 public class PassengerValidationService {
     private final RequestParameterValidationService requestParameterValidationService;
     private final PassportValidationService passportValidationService;
+    private static final String NAME_PATTERN = "^[a-zA-Zа-яА-ЯёЁ]+([\\s-][a-zA-Zа-яА-ЯёЁ]+)*$";
 
     public PassengerValidationService(RequestParameterValidationService requestParameterValidationService,
                                       PassportValidationService passportValidationService) {
@@ -26,9 +27,9 @@ public class PassengerValidationService {
             throw new ValidationException("Request body is missing");
         }
 
-        validateName(request.firstName(), "First name", errors);
-        validateName(request.lastName(), "Last name", errors);
-        validateName(request.fatherName(), "Father name", errors);
+        validateFirstName(request.firstName(), errors);
+        validateLastName(request.lastName(), errors);
+        validateFatherName(request.fatherName(), errors);
         passportValidationService.validatePassportDto(request.passportDto(), errors);
 
         if (!errors.isEmpty()) {
@@ -49,10 +50,9 @@ public class PassengerValidationService {
             errors.add(e.getMessage());
         }
 
-        validateName(request.firstName(), "First name", errors);
-        validateName(request.lastName(), "Last name", errors);
-        validateName(request.fatherName(), "Father name", errors);
-        validateUserId(request.userId(), errors);
+        validateFirstName(request.firstName(), errors);
+        validateLastName(request.lastName(), errors);
+        validateFatherName(request.fatherName(), errors);
         validateBirthDate(request.birthDate(), errors);
 
         if (request.passportDto() == null) {
@@ -66,20 +66,35 @@ public class PassengerValidationService {
         }
     }
 
-    private void validateUserId(Long userId, List<String> errors) {
-        if (userId == null) {
-            errors.add("User id cannot be null");
+    private void validateFirstName(String name, List<String> errorMessages) {
+        if (name == null || name.isBlank()) {
+            errorMessages.add("%s must not be empty and without spaces".formatted(name));
             return;
         }
 
-        if (userId < 0) {
-            errors.add("User id cannot be negative");
+        if (!name.matches(NAME_PATTERN)) {
+            errorMessages.add("First name invalid format");
         }
     }
 
-    private void validateName(String name, String fieldName, List<String> errorMessages) {
+    private void validateLastName(String name, List<String> errorMessages) {
         if (name == null || name.isBlank()) {
-            errorMessages.add("%s must not be empty and without spaces".formatted(fieldName));
+            errorMessages.add("%s must not be empty and without spaces".formatted(name));
+            return;
+        }
+
+        if (!name.matches(NAME_PATTERN)) {
+            errorMessages.add("Last name invalid format");
+        }
+    }
+
+    private void validateFatherName(String name, List<String> errorMessages) {
+        if (name == null || name.isBlank()) {
+            return;
+        }
+
+        if (!name.matches(NAME_PATTERN)) {
+            errorMessages.add("Father name invalid format");
         }
     }
 

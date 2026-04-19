@@ -2,7 +2,7 @@ package dto.user;
 
 import domain.Role;
 
-public record UserSignUpResponse(long id,
+public record UserSignUpResponse(Long id,
                                  String email,
                                  String firstName,
                                  String lastName,

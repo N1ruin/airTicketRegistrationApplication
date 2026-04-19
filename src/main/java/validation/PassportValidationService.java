@@ -17,30 +17,57 @@ public class PassportValidationService {
 
         validateNumber(passportDto.number(), errors);
         validateCitizenship(passportDto.citizenship(), errors);
+        validateIssueDate(passportDto.issueDate(), errors);
         validateExpriredDate(passportDto.expiredDate(), errors);
     }
 
     private void validateSeries(String series, List<String> errors) {
+        if (series == null) {
+            errors.add("Passport series must not be null");
+            return;
+        }
         if (!series.matches(SERIES_PATTERN)) {
             errors.add("Passport series must contain only letters or numbers (up to 12 characters).");
         }
     }
 
     private void validateNumber(String number, List<String> errors) {
+        if (number == null) {
+            errors.add("Passport number must not be null");
+            return;
+        }
         if (!number.matches(NUMBER_PATTERN)) {
             errors.add("Passport number must be between 5 and 20 characters (letters and numbers only).");
         }
     }
 
     private void validateCitizenship(String citizenship, List<String> errors) {
+        if (citizenship == null) {
+            errors.add("Passport citizenship must not be null");
+            return;
+        }
         if (!citizenship.matches(CITIZENSHIP_PATTERN)) {
             errors.add("Citizenship must be a valid 2 or 3-letter ISO country code.");
         }
     }
 
+    private void validateIssueDate(LocalDate issueDate, List<String> errors) {
+        if (issueDate == null) {
+            errors.add("Passport issue date must not be null");
+            return;
+        }
+        if (issueDate.isAfter(LocalDate.now())) {
+            errors.add("Invalid issue date");
+        }
+    }
+
     private void validateExpriredDate(LocalDate expiredDate, List<String> errors) {
+        if (expiredDate == null) {
+            errors.add("Passport expired date must not be null");
+            return;
+        }
         if (expiredDate.isBefore(LocalDate.now())) {
-            errors.add("Passport expired.");
+            errors.add("Passport expired");
         }
     }
 }

@@ -84,7 +84,7 @@ public class TicketResultSetMapper implements ResultSetMapper<Optional<Ticket>>,
 
         var ticket = new Ticket();
         ticket.setId(resultSet.getLong("ticket_id"));
-        ticket.setTicketNumber(resultSet.getInt("ticket_number"));
+        ticket.setTicketNumber(resultSet.getLong("ticket_number"));
         ticket.setTicketStatus(TicketStatus.valueOf(resultSet.getString("ticket_status")));
         ticket.setServiceClass(ServiceClass.valueOf(resultSet.getString("service_class")));
         ticket.setSeatNumber(resultSet.getInt("seat_number"));

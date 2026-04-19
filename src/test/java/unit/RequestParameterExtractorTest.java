@@ -47,10 +47,43 @@ class RequestParameterExtractorTest {
     }
 
     @Test
-    void extractIdFailureNumberFormanException() {
+    void extractIdFailureNumberFormatException() {
         when(request.getParameter("id")).thenReturn("asda");
 
         assertThrows(ValidationException.class, () -> requestParameterExtractor.extractId(request));
     }
 
+    @Test
+    void extractUserIdSuccess() {
+        when(request.getParameter("userId")).thenReturn("1");
+
+        var result = requestParameterExtractor.extractUserId(request);
+
+        assertEquals(1L, result);
+    }
+
+    @Test
+    void extractUserIdFailureParamIsNull() {
+        when(request.getParameter("userId")).thenReturn(null);
+
+        var result = requestParameterExtractor.extractUserId(request);
+
+        assertNull(result);
+    }
+
+    @Test
+    void extractUserIdFailureParamIsBlank() {
+        when(request.getParameter("userId")).thenReturn("");
+
+        var result = requestParameterExtractor.extractUserId(request);
+
+        assertNull(result);
+    }
+
+    @Test
+    void extractUserIdFailureNumberFormatException() {
+        when(request.getParameter("userId")).thenReturn("asda");
+
+        assertThrows(ValidationException.class, () -> requestParameterExtractor.extractUserId(request));
+    }
 }

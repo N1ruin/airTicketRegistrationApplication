@@ -16,6 +16,7 @@ public class PassengerConverter implements Converter<PassengerDto, Passenger> {
     public Passenger convert(PassengerDto passengerDto) {
         var passenger = new Passenger();
 
+        passenger.setId(passengerDto.id());
         passenger.setFirstName(passengerDto.firstName());
         passenger.setLastName(passengerDto.lastName());
         passenger.setFatherName(passengerDto.fatherName());

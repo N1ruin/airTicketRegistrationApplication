@@ -58,7 +58,6 @@ public class UserService {
 
     public void update(Long id, String newPassword, String firstName, String lastName, String fatherName) {
         updateTransactional(id, newPassword, firstName, lastName, fatherName);
-
     }
 
     private User signUpTransactional(User user) {
@@ -102,14 +101,16 @@ public class UserService {
     }
 
     private void blockTransactional(Long id) {
-        var user = getUserById(id);
+        transactionHelper.executeInTransaction(() -> {
+            var user = getUserById(id);
 
-        if (user.isBlocked()) {
-            return;
-        }
+            if (user.isBlocked()) {
+                return;
+            }
 
-        user.setBlocked(true);
-        userRepository.update(user);
+            user.setBlocked(true);
+            userRepository.update(user);
+        });
     }
 
     private void unblockTransactional(Long id) {

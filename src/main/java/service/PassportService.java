@@ -15,32 +15,60 @@ public class PassportService {
         this.passportRepository = passportRepository;
     }
 
-    public void save(Passport passport) {
-        saveTransactional(passport);
+    public Passport save(Passport passport) {
+        return saveTransactional(passport);
     }
 
-    private void saveTransactional(Passport passport) {
-        transactionHelper.executeInTransaction(() -> {
-            if (passportRepository.findBySeriesAndNumberAndCitizenship(passport.getSeries(), passport.getNumber(),
-                    passport.getCitizenship()).isPresent()) {
+    public Passport update(Passport passport) {
+        return updateTransactional(passport);
+    }
+
+    public void deleteById(Long id) {
+        deleteTransactional(id);
+    }
+
+    public void checkPassportBySeriesAndNumberAndCitizenshipExist(String series, String number, String citizenship) {
+        findBySeriesAndNumberAndCitizenshipTransactional(series, number, citizenship);
+    }
+
+    private Passport saveTransactional(Passport passport) {
+        return transactionHelper.executeInTransaction(() -> {
+            var existedPassport = passportRepository.findBySeriesAndNumberAndCitizenship(passport.getSeries(),
+                    passport.getNumber(), passport.getCitizenship());
+            if (existedPassport.isPresent()) {
                 throw new EntityAlreadyExistException("There is already an passport with series %s, number %s, citizenship %s"
                         .formatted(passport.getSeries(), passport.getNumber(), passport.getCitizenship()));
             }
 
-            passportRepository.save(passport);
+            return passportRepository.save(passport);
         });
     }
 
-    public void update(Passport passport) {
-        transactionHelper.executeInTransaction(() -> passportRepository.update(passport));
+    private Passport updateTransactional(Passport passport) {
+        return transactionHelper.executeInTransaction(() -> {
+            var existedPassport = passportRepository.findBySeriesAndNumberAndCitizenship(passport.getSeries(), passport.getNumber(),
+                            passport.getCitizenship())
+                    .orElseThrow(() -> new EntityNotFoundException("Passport  not found"));
+
+            passport.setId(existedPassport.getId());
+
+            return passportRepository.update(passport);
+        });
     }
 
-    public void deleteById(Long id) {
+    private void deleteTransactional(Long id) {
         transactionHelper.executeInTransaction(() -> {
             passportRepository.findById(id)
                     .orElseThrow(() -> new EntityNotFoundException("Passport with id %d not found".formatted(id)));
 
             passportRepository.deleteById(id);
         });
+    }
+
+    private void findBySeriesAndNumberAndCitizenshipTransactional(String series, String number, String citizenship) {
+        transactionHelper.executeInTransaction(() ->
+                passportRepository.findBySeriesAndNumberAndCitizenship(series, number, citizenship)
+                        .orElseThrow(() -> new EntityNotFoundException("Passport wits series %s, number %s, citizenship %s not found"
+                                .formatted(series, number, citizenship))));
     }
 }
