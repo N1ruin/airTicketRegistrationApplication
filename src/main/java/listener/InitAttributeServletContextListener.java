@@ -1,6 +1,7 @@
 package listener;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import converter.address.AddressConverter;
@@ -11,9 +12,12 @@ import converter.passenger.*;
 import converter.passsport.PassportConverter;
 import converter.passsport.PassportDtoConverter;
 import converter.ticket.CreateTicketRequestConverter;
+import converter.ticket.CreateTicketResponseConverter;
+import converter.ticket.TicketDtoConverter;
 import converter.user.UserDtoConverter;
 import converter.user.UserSignUpRequestConverter;
 import converter.user.UserSignUpResponseConverter;
+import converter.user.UserUpdateResponseConverter;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import mapper.*;
@@ -54,6 +58,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(MIGRATION_SERVICE, migrationService);
         var passwordEncoder = new PasswordEncoder();
         var objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
         var httpHelper = new HttpHelper(objectMapper);
         context.setAttribute(HTTP_HELPER, httpHelper);
         var connectionHelper = new ConnectionHelper(dataSource);
@@ -79,6 +84,8 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(USER_DTO_CONVERTER, userDtoConverter);
         var userService = new UserService(userRepository, transactionHelper, passwordEncoder, userDtoConverter);
         context.setAttribute(USER_SERVICE, userService);
+        var userUpdateResponseConverter = new UserUpdateResponseConverter();
+        context.setAttribute(USER_UPDATE_RESPONSE_CONVERTER, userUpdateResponseConverter);
 
         var addressValidationService = new AddressValidationService();
         context.setAttribute(ADDRESS_VALIDATION_SERVICE, addressValidationService);
@@ -87,7 +94,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(ADDRESS_CONVERTER, addressConverter);
         var addressDtoConverter = new AddressDtoConverter();
         context.setAttribute(ADDRESS_DTO_CONVERTER, addressDtoConverter);
-        var addressRepository = new AddressRepositoryImpl(connectionHelper);
+        var addressRepository = new AddressRepositoryImpl(connectionHelper, addressResultSetMapper);
         var addressService = new AddressService(transactionHelper, addressRepository);
         context.setAttribute(ADDRESS_SERVICE, addressService);
 
@@ -149,13 +156,13 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(FLIGHT_CONVERTER, flightDtoConverter);
         var flightValidationService = new FlightValidationService(requestParameterValidationService);
         context.setAttribute(FLIGHT_VALIDATION_SERVICE, flightValidationService);
-        var updateFlightRequestConverter = new UpdateFlightRequestConverter();
+        var updateFlightRequestConverter = new UpdateFlightRequestConverter(airportDtoConverter);
         context.setAttribute(UPDATE_FLIGHT_REQUEST_CONVERTER, updateFlightRequestConverter);
         var updateFlightResponseConverter = new UpdateFlightResponseConverter(airportConverter);
         context.setAttribute(UPDATE_FLIGHT_RESPONSE_CONVERTER, updateFlightResponseConverter);
         var flightResultSetMapper = new FlightResultSetMapper();
         var flightRepository = new FlightRepositoryImpl(flightResultSetMapper, connectionHelper);
-        var flightService = new FlightService(flightRepository, transactionHelper, airportRepository);
+        var flightService = new FlightService(flightRepository, transactionHelper, airportService);
         context.setAttribute(FLIGHT_SERVICE, flightService);
         var flightConverter = new FlightDtoConverter(airportDtoConverter);
 
@@ -168,6 +175,10 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(TICKET_VALIDATION_SERVICE, ticketValidationService);
         var createTicketRequestConverter = new CreateTicketRequestConverter(flightConverter, passengerConverter);
         context.setAttribute(CREATE_TICKET_REQUEST_CONVERTER, createTicketRequestConverter);
+        var createTicketResponseConverter = new CreateTicketResponseConverter(flightDtoConverter, passengerDtoConverter);
+        context.setAttribute(CREATE_TICKET_RESPONSE_CONVERTER, createTicketResponseConverter);
+        var ticketDtoConverter = new TicketDtoConverter(flightDtoConverter, passengerDtoConverter);
+        context.setAttribute(TICKET_DTO_CONVERTER, ticketDtoConverter);
 
         log.info("Attribute initialization finish");
     }

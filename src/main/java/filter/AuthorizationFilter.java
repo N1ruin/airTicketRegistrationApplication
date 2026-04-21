@@ -18,7 +18,7 @@ public class AuthorizationFilter extends HttpFilter {
         var uri = req.getRequestURI().substring(req.getContextPath().length());
         var user = (UserDto) req.getSession().getAttribute("user");
 
-        if (isSignUpOrSignInPath(req)) {
+        if (isFreePath(req)) {
             chain.doFilter(req, res);
             return;
         }
@@ -41,15 +41,15 @@ public class AuthorizationFilter extends HttpFilter {
         chain.doFilter(req, res);
     }
 
-    private boolean isSignUpOrSignInPath(HttpServletRequest req) {
+    private boolean isFreePath(HttpServletRequest req) {
         var path = req.getRequestURI().substring(req.getContextPath().length());
 
-        return path.equals("/signin") || path.equals("/signup");
+        return path.equals("/signin") || path.equals("/signup") || path.contains("/webjars") || path.equals("/swagger");
     }
 
     private boolean isAdminPath(String path) {
         return path.equals("/admin/block") ||
-               path.equals("/admin/unblock") ||
-               path.equals("/admin/signup");
+                path.equals("/admin/unblock") ||
+                path.equals("/admin/signup");
     }
 }

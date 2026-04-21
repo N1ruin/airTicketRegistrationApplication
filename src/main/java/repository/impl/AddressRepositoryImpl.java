@@ -1,6 +1,10 @@
 package repository.impl;
 
 import domain.Address;
+import exception.RepositoryException;
+import mapper.AddressResultSetMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import repository.AddressRepository;
 import repository.ConnectionHelper;
 
@@ -10,10 +14,13 @@ import java.util.List;
 import java.util.Optional;
 
 public class AddressRepositoryImpl implements AddressRepository {
+    public static final Logger log = LogManager.getLogger(AddressRepositoryImpl.class);
     private final ConnectionHelper connectionHelper;
+    private final AddressResultSetMapper addressResultSetMapper;
 
-    public AddressRepositoryImpl(ConnectionHelper connectionHelper) {
+    public AddressRepositoryImpl(ConnectionHelper connectionHelper, AddressResultSetMapper addressResultSetMapper) {
         this.connectionHelper = connectionHelper;
+        this.addressResultSetMapper = addressResultSetMapper;
     }
 
     @Override
@@ -35,7 +42,8 @@ public class AddressRepositoryImpl implements AddressRepository {
 
             return address;
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.error(e);
+            throw new RepositoryException("Address saving error");
         }
     }
 
@@ -64,12 +72,13 @@ public class AddressRepositoryImpl implements AddressRepository {
 
             return address;
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.error(e);
+            throw new RepositoryException("Address update error");
         }
     }
 
     @Override
-    public void deleteById(long id) {
+    public void deleteById(Long id) {
         throw new UnsupportedOperationException();
     }
 
@@ -91,7 +100,33 @@ public class AddressRepositoryImpl implements AddressRepository {
 
             return resultSet.next() ? Optional.of(address) : Optional.empty();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.error(e);
+            throw new RepositoryException("Address delete error");
+        }
+    }
+
+    @Override
+    public Optional<Address> findByAirportId(Long airportId) {
+        var sql = """
+                SELECT address.id AS address_id,
+                address.country AS address_country,
+                address.city AS address_city,
+                address.street AS address_street,
+                address.house_number AS address_house_number
+                FROM tickets_application.address AS address
+                JOIN tickets_application.airport AS airport ON address.id = airport.address_id
+                WHERE airport.id = ?;
+                """;
+        var connection = connectionHelper.getConnection();
+        try (var preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, airportId);
+
+            var resultSet = preparedStatement.executeQuery();
+
+            return resultSet.next() ? addressResultSetMapper.map(resultSet) : Optional.empty();
+        } catch (SQLException e) {
+            log.error(e);
+            throw new RepositoryException("Address delete error");
         }
     }
 

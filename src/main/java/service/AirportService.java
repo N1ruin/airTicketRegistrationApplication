@@ -1,6 +1,7 @@
 package service;
 
 import domain.Airport;
+import domain.AirportStatus;
 import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
 import repository.AirportRepository;
@@ -45,16 +46,21 @@ public class AirportService {
     }
 
     private Airport saveTransactional(Airport airport) {
-        return transactionHelper.executeInTransaction(() -> {
-            airportRepository.findByCode(airport.getCode())
-                    .ifPresent(a -> {
+        return transactionHelper.executeInTransaction(() -> airportRepository.findByCode(airport.getCode())
+                .map(existed -> {
+                    if (existed.getAirportStatus() == AirportStatus.WORKS) {
                         throw new EntityAlreadyExistException("Airport with code %s already exist"
                                 .formatted(airport.getCode()));
-                    });
+                    }
+                    existed.setAirportStatus(AirportStatus.WORKS);
+                    airportRepository.update(existed);
 
-            addressService.save(airport.getAddress());
-            return airportRepository.save(airport);
-        });
+                    return existed;
+                }).orElseGet(() -> {
+                    addressService.save(airport.getAddress());
+
+                    return airportRepository.save(airport);
+                }));
     }
 
     private List<Airport> findAllTransactional() {
@@ -68,11 +74,14 @@ public class AirportService {
 
     private Airport updateTransactional(Airport airport) {
         return transactionHelper.executeInTransaction(() -> {
-            airportRepository.findById(airport.getId())
+            var existed = airportRepository.findById(airport.getId())
                     .orElseThrow(() -> new EntityNotFoundException("Airport with id %d not found"
                             .formatted(airport.getId())));
 
-            addressService.update(airport.getAddress());
+            var updatedAddress = addressService.update(airport.getAddress(), airport.getId());
+            airport.setAirportStatus(existed.getAirportStatus());
+            airport.setAddress(updatedAddress);
+
             return airportRepository.update(airport);
         });
     }
@@ -82,7 +91,10 @@ public class AirportService {
             var airport = airportRepository.findById(id)
                     .orElseThrow(() -> new EntityNotFoundException("Airport with id %d not found".formatted(id)));
 
-            addressService.deleteById(airport.getAddress().getId());
+            if (airport.getAirportStatus() == AirportStatus.CLOSED) {
+                return;
+            }
+
             airportRepository.deleteById(id);
         });
     }

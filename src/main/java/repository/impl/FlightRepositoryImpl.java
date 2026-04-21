@@ -1,6 +1,7 @@
 package repository.impl;
 
 import domain.Flight;
+import exception.RepositoryException;
 import mapper.FlightResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +24,7 @@ public class FlightRepositoryImpl implements FlightRepository {
             departure_airport.id AS departure_airport_id,
             departure_airport.code AS departure_airport_code,
             departure_airport.name AS departure_airport_name,
+            departure_airport.status AS departure_airport_status,
             departure_address.id AS departure_address_id,
             departure_address.country AS departure_address_country,
             departure_address.city AS departure_address_city,
@@ -31,6 +33,7 @@ public class FlightRepositoryImpl implements FlightRepository {
             arrival_airport.id AS arrival_airport_id,
             arrival_airport.code AS arrival_airport_code,
             arrival_airport.name AS arrival_airport_name,
+            arrival_airport.status AS arrival_airport_status,
             arrival_address.id AS arrival_address_id,
             arrival_address.country AS arrival_address_country,
             arrival_address.city AS arrival_address_city,
@@ -71,7 +74,7 @@ public class FlightRepositoryImpl implements FlightRepository {
             return flight;
         } catch (SQLException e) {
             log.error("Flight save in database error.", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Flight save error");
         }
     }
 
@@ -88,7 +91,7 @@ public class FlightRepositoryImpl implements FlightRepository {
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
             log.error("Flight find by id {} error.", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Flight find by id error");
         }
     }
 
@@ -101,7 +104,7 @@ public class FlightRepositoryImpl implements FlightRepository {
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
             log.error("Flight find all error.", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Flight find all error");
         }
     }
 
@@ -123,12 +126,12 @@ public class FlightRepositoryImpl implements FlightRepository {
             return flight;
         } catch (SQLException e) {
             log.error("Flight with id {} update error.", flight.getId(), e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Flight update error");
         }
     }
 
     @Override
-    public void deleteById(long id) {
+    public void deleteById(Long id) {
         var sql = """
                 DELETE FROM tickets_application.flight WHERE id = ?
                 """;
@@ -139,7 +142,7 @@ public class FlightRepositoryImpl implements FlightRepository {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             log.error("Flight with id {} delete error.", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Flight delete error");
         }
     }
 

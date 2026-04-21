@@ -12,5 +12,5 @@ public interface Repository<T> {
 
     T update(T entity);
 
-    void deleteById(long id);
+    void deleteById(Long id);
 }

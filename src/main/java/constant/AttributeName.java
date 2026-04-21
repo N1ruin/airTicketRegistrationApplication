@@ -14,6 +14,7 @@ public class AttributeName {
     public static final String USER_SIGN_UP_REQUEST_CONVERTER = "userSignUpRequestConverter";
     public static final String USER_SIGN_UP_RESPONSE_CONVERTER = "userSignUpResponseConverter";
     public static final String USER_DTO_CONVERTER = "userDtoConverter";
+    public static final String USER_UPDATE_RESPONSE_CONVERTER = "userUpdateResponseConverter";
 
     public static final String AIRPORT_SERVICE = "airportService";
     public static final String CREATE_AIRPORT_REQUEST_CONVERTER = "createAirportRequestConverter";

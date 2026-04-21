@@ -30,30 +30,22 @@ public class AddressService {
         });
     }
 
-    public Address update(Address address) {
-        return updateTransactional(address);
+    public Address update(Address address, Long airportId) {
+        return updateTransactional(address, airportId);
     }
 
-    private Address updateTransactional(Address address) {
+    private Address updateTransactional(Address address, Long airportId) {
         return transactionHelper.executeInTransaction(() -> {
-            var existingAddress = addressRepository.findByCountryAndCityAndStreetAndHouseNumber(address);
-            if (existingAddress.isPresent()) {
-                throw new EntityAlreadyExistException("Address exist");
-            }
+            var existing = addressRepository.findByAirportId(airportId)
+                    .orElseThrow(() -> new EntityNotFoundException("Address with airport id %d not found"
+                            .formatted(airportId)));
 
-            return addressRepository.update(address);
-        });
-    }
+            existing.setCountry(address.getCountry());
+            existing.setCity(address.getCity());
+            existing.setStreet(address.getStreet());
+            existing.setHouseNumber(address.getHouseNumber());
 
-    public void deleteById(Long id) {
-        deleteTransactional(id);
-    }
-
-    private void deleteTransactional(Long id) {
-        transactionHelper.executeInTransaction(() -> {
-            addressRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Address with id %d not found".formatted(id)));
-            addressRepository.deleteById(id);
+            return addressRepository.update(existing);
         });
     }
 }

@@ -59,12 +59,12 @@ public class TicketService {
 
             var passenger = passengerService.findById(passengerId);
             if (!passenger.getUserId().equals(currentUserId)) {
-                throw new ValidationException("Вы можете покупать билеты только для своих пассажиров");
+                throw new ValidationException("You can only purchase tickets for your own passengers");
             }
             ticketRepository.findByFlightIdAndPassengerId(flightId, passengerId)
                     .ifPresent(existingTicket -> {
                         if (existingTicket.getTicketStatus() == TicketStatus.ACTIVE) {
-                            throw new EntityAlreadyExistException("У пассажира уже есть билет на этот рейс");
+                            throw new EntityAlreadyExistException("The passenger already has an active ticket for this flight");
                         }
                     });
 
@@ -72,12 +72,12 @@ public class TicketService {
             var freeSeats = flight.getFreeSeats();
 
             if (freeSeats <= 0) {
-                throw new ValidationException("На рейсе нет свободных мест");
+                throw new ValidationException("No free seats available for this flight");
             }
 
             ticketRepository.findByFlightIdAndSeatNumber(ticket.getFlight().getId(), ticket.getSeatNumber())
                     .ifPresent(exsistedTicket -> {
-                        throw new EntityAlreadyExistException("Место %d занято".formatted(ticket.getSeatNumber()));
+                        throw new EntityAlreadyExistException("Seat %d is already taken".formatted(ticket.getSeatNumber()));
                     });
 
             flight.setFreeSeats(flight.getFreeSeats() - 1);

@@ -1,6 +1,7 @@
 package mapper;
 
 import domain.Airport;
+import domain.AirportStatus;
 import exception.MappingException;
 
 import java.sql.ResultSet;
@@ -27,6 +28,7 @@ public class AirportResultSetMapper implements ResultSetMapper<Optional<Airport>
         airport.setId(resultSet.getLong("airport_id"));
         airport.setCode(resultSet.getString("airport_code"));
         airport.setName(resultSet.getString("airport_name"));
+        airport.setAirportStatus(AirportStatus.valueOf(resultSet.getString("airport_status")));
 
         var address = addressResultSetMapper.map(resultSet)
                 .orElseThrow(() -> new MappingException("Address mapping error"));

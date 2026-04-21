@@ -1,6 +1,7 @@
 package repository.impl;
 
 import domain.Passenger;
+import exception.RepositoryException;
 import mapper.PassengerResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,6 +26,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
                    passport.id AS passport_id,
                    passport.passport_series AS passport_series,
                    passport.passport_number AS passport_number,
+                   passport.citizenship AS passport_citizenship,
                    passport.passport_issue_date AS passport_issue_date,
                    passport.passport_expired_date AS passport_expired_date
             FROM tickets_application.passenger AS passenger
@@ -60,13 +62,13 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             return passenger;
         } catch (SQLException e) {
             log.error("Passenger save in database error.", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Passenger save error");
         }
     }
 
     @Override
     public Optional<Passenger> findById(Long id) {
-        var sql = SELECT_QUERY + " WHERE id = ?";
+        var sql = SELECT_QUERY + " WHERE passenger.id = ?";
 
         var connection = connectionHelper.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
@@ -77,7 +79,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
             log.error("Passenger find by id {} error.", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Passenger find by id error");
         }
     }
 
@@ -94,7 +96,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
             log.error("Find all passengers by user id {} error.", userId, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Passenger find all error");
         }
     }
 
@@ -107,7 +109,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
             log.error("Passenger find all error.", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Passenger find all error");
         }
     }
 
@@ -130,12 +132,12 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             return passenger;
         } catch (SQLException e) {
             log.error("Passenger with id {} update error.", passenger.getId(), e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Passenger update error");
         }
     }
 
     @Override
-    public void deleteById(long id) {
+    public void deleteById(Long id) {
         var sql = """
                 DELETE FROM tickets_application.passenger WHERE id = ?
                 """;
@@ -147,7 +149,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             log.error("Passenger with id {} delete error.", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Passenger delete error");
         }
     }
 
@@ -182,7 +184,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             }
         } catch (SQLException e) {
             log.error("Error incrementing favorite airport", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Passenger update favorite airports error");
         }
     }
 
@@ -202,7 +204,24 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             log.error("Error decrementing favorite airport", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Refund favorite airport error");
+        }
+    }
+
+    @Override
+    public Optional<Passenger> findByPassportId(Long passportId) {
+        var sql = SELECT_QUERY + " WHERE passport.id = ?";
+
+        var connection = connectionHelper.getConnection();
+        try (var preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, passportId);
+
+            var resultSet = preparedStatement.executeQuery();
+
+            return resultSetMapper.map(resultSet);
+        } catch (SQLException e) {
+            log.error("Error finding passenger by passport_id {}", passportId, e);
+            throw new RepositoryException("Passenger find by passport error");
         }
     }
 

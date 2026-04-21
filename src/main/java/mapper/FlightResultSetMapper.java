@@ -2,6 +2,7 @@ package mapper;
 
 import domain.Address;
 import domain.Airport;
+import domain.AirportStatus;
 import domain.Flight;
 
 import java.sql.ResultSet;
@@ -40,19 +41,21 @@ public class FlightResultSetMapper implements ResultSetMapper<Optional<Flight>>,
         departureAirport.setId(resultSet.getLong("departure_airport_id"));
         departureAirport.setCode(resultSet.getString("departure_airport_code"));
         departureAirport.setName(resultSet.getString("departure_airport_name"));
+        departureAirport.setAirportStatus(AirportStatus.valueOf(resultSet.getString("departure_airport_status")));
         departureAirport.setAddress(departureAddress);
 
         var arrivalAddress = new Address();
-        departureAddress.setId(resultSet.getLong("arrival_address_id"));
-        departureAddress.setCountry(resultSet.getString("arrival_address_country"));
-        departureAddress.setCity(resultSet.getString("arrival_address_city"));
-        departureAddress.setStreet(resultSet.getString("arrival_address_street"));
-        departureAddress.setHouseNumber(resultSet.getInt("arrival_address_house_number"));
+        arrivalAddress.setId(resultSet.getLong("arrival_address_id"));
+        arrivalAddress.setCountry(resultSet.getString("arrival_address_country"));
+        arrivalAddress.setCity(resultSet.getString("arrival_address_city"));
+        arrivalAddress.setStreet(resultSet.getString("arrival_address_street"));
+        arrivalAddress.setHouseNumber(resultSet.getInt("arrival_address_house_number"));
 
         var arrivalAirport = new Airport();
         arrivalAirport.setId(resultSet.getLong("arrival_airport_id"));
         arrivalAirport.setCode(resultSet.getString("arrival_airport_code"));
         arrivalAirport.setName(resultSet.getString("arrival_airport_name"));
+        arrivalAirport.setAirportStatus(AirportStatus.valueOf(resultSet.getString("arrival_airport_status")));
         arrivalAirport.setAddress(arrivalAddress);
 
         var flight = new Flight();

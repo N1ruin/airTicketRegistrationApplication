@@ -1,10 +1,11 @@
 package service;
 
 import domain.Passport;
-import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
 import repository.PassportRepository;
 import repository.TransactionHelper;
+
+import java.util.Optional;
 
 public class PassportService {
     private final TransactionHelper transactionHelper;
@@ -27,21 +28,14 @@ public class PassportService {
         deleteTransactional(id);
     }
 
-    public void checkPassportBySeriesAndNumberAndCitizenshipExist(String series, String number, String citizenship) {
-        findBySeriesAndNumberAndCitizenshipTransactional(series, number, citizenship);
+    public Optional<Passport> findBySeriesAndNumberAndCitizenshipExist(String series, String number, String citizenship) {
+        return findBySeriesAndNumberAndCitizenshipTransactional(series, number, citizenship);
     }
 
     private Passport saveTransactional(Passport passport) {
-        return transactionHelper.executeInTransaction(() -> {
-            var existedPassport = passportRepository.findBySeriesAndNumberAndCitizenship(passport.getSeries(),
-                    passport.getNumber(), passport.getCitizenship());
-            if (existedPassport.isPresent()) {
-                throw new EntityAlreadyExistException("There is already an passport with series %s, number %s, citizenship %s"
-                        .formatted(passport.getSeries(), passport.getNumber(), passport.getCitizenship()));
-            }
-
-            return passportRepository.save(passport);
-        });
+        return transactionHelper.executeInTransaction(() -> passportRepository.findBySeriesAndNumberAndCitizenship(
+                        passport.getSeries(), passport.getNumber(), passport.getCitizenship())
+                .orElseGet(() -> passportRepository.save(passport)));
     }
 
     private Passport updateTransactional(Passport passport) {
@@ -65,10 +59,8 @@ public class PassportService {
         });
     }
 
-    private void findBySeriesAndNumberAndCitizenshipTransactional(String series, String number, String citizenship) {
-        transactionHelper.executeInTransaction(() ->
-                passportRepository.findBySeriesAndNumberAndCitizenship(series, number, citizenship)
-                        .orElseThrow(() -> new EntityNotFoundException("Passport wits series %s, number %s, citizenship %s not found"
-                                .formatted(series, number, citizenship))));
+    private Optional<Passport> findBySeriesAndNumberAndCitizenshipTransactional(String series, String number, String citizenship) {
+        return transactionHelper.executeInTransaction(() ->
+                passportRepository.findBySeriesAndNumberAndCitizenship(series, number, citizenship));
     }
 }

@@ -1,12 +1,14 @@
 package service;
 
 import domain.Passenger;
+import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
 import exception.ValidationException;
 import repository.PassengerRepository;
 import repository.TransactionHelper;
 
 import java.util.List;
+import java.util.Optional;
 
 public class PassengerService {
     private final PassengerRepository passengerRepository;
@@ -46,6 +48,14 @@ public class PassengerService {
         deleteTransactional(id, userId);
     }
 
+    public Optional<Passenger> findByPassportId(Long passportId) {
+        return findByPassportIdTransactional(passportId);
+    }
+
+    private Optional<Passenger> findByPassportIdTransactional(Long passportId) {
+        return transactionHelper.executeInTransaction(() -> passengerRepository.findByPassportId(passportId));
+    }
+
     public void updateFavoriteAirports(Long passengerId, String code) {
         updateFavoriteAirportsTransactional(passengerId, code);
     }
@@ -56,12 +66,21 @@ public class PassengerService {
 
     private Passenger saveTransactional(Passenger passenger) {
         return transactionHelper.executeInTransaction(() -> {
-
             var passport = passenger.getPassport();
-            passportService.checkPassportBySeriesAndNumberAndCitizenshipExist(passport.getSeries(), passport.getNumber(),
-                    passport.getCitizenship());
 
-            passportService.save(passport);
+            var existedPassport = passportService.findBySeriesAndNumberAndCitizenshipExist(
+                            passport.getSeries(), passport.getNumber(), passport.getCitizenship())
+                    .orElseGet(() -> passportService.save(passport));
+
+            findByPassportId(existedPassport.getId())
+                    .ifPresent(p -> {
+                        throw new EntityAlreadyExistException(
+                                "Passenger with passport id %d already exists ".formatted(p.getId())
+                        );
+                    });
+
+            passenger.setPassport(existedPassport);
+
             return passengerRepository.save(passenger);
         });
     }
@@ -88,10 +107,22 @@ public class PassengerService {
             if (!existing.getUserId().equals(currentUserId)) {
                 throw new ValidationException("You cannot update someone else's passenger");
             }
+            var passportRequest = passenger.getPassport();
+            var passportToLink = passportService.findBySeriesAndNumberAndCitizenshipExist(
+                    passportRequest.getSeries(),
+                    passportRequest.getNumber(),
+                    passportRequest.getCitizenship()
+            ).orElseGet(() -> passportService.save(passportRequest));
 
-            passportService.update(passenger.getPassport());
+            existing.setFirstName(passenger.getFirstName());
+            existing.setLastName(passenger.getLastName());
+            existing.setFatherName(passenger.getFatherName());
+            existing.setMale(passenger.isMale());
+            existing.setBirthDate(passenger.getBirthDate());
+            existing.setPassport(passportToLink);
 
-            return passengerRepository.update(passenger);
+            return passengerRepository.update(existing);
+
         });
     }
 

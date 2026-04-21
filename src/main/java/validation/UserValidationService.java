@@ -28,7 +28,7 @@ public class UserValidationService {
     public void validateUpdateRequest(UpdateUserRequest request) {
         List<String> errors = new ArrayList<>();
 
-        validatePassword(request.newPassword(), errors);
+        validateUpdatedPassword(request.newPassword(), errors);
         validateName(request.firstName(), "First name", errors);
         validateName(request.lastName(), "Last name", errors);
         validateName(request.fatherName(), "Father name", errors);
@@ -42,6 +42,14 @@ public class UserValidationService {
         if (email == null || !email.matches(EMAIL_PATTERN)) {
             errors.add("Invalid email format");
         }
+    }
+
+    private void validateUpdatedPassword(String password, List<String> errors) {
+        if (password == null) {
+            return;
+        }
+
+        validatePassword(password, errors);
     }
 
     private void validatePassword(String password, List<String> errors) {

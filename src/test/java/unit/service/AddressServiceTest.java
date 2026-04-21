@@ -74,53 +74,34 @@ class AddressServiceTest {
 
     @Test
     void updateSuccess() {
-        var updatedAddress = getAddress();
-        when(addressRepository.findByCountryAndCityAndStreetAndHouseNumber(updatedAddress))
-                .thenReturn(Optional.empty());
-        when(addressRepository.update(updatedAddress)).thenReturn(updatedAddress);
+        var airportId = 1L;
+        var newAddressData = getAddress();
+        var existingAddress = new Address();
+        existingAddress.setId(100L);
+        existingAddress.setStreet("Old Street");
+        when(addressRepository.findByAirportId(airportId)).thenReturn(Optional.of(existingAddress));
+        when(addressRepository.update(any(Address.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        var result = addressService.update(updatedAddress);
+        var result = addressService.update(newAddressData, airportId);
 
         assertNotNull(result);
+        assertEquals(100L, result.getId());
         assertEquals("Country", result.getCountry());
         assertEquals("City", result.getCity());
         assertEquals("Street", result.getStreet());
         assertEquals(1, result.getHouseNumber());
-        verify(addressRepository).findByCountryAndCityAndStreetAndHouseNumber(updatedAddress);
+        verify(addressRepository).findByAirportId(airportId);
+        verify(addressRepository).update(existingAddress);
     }
 
     @Test
     void updateAddressExistThrowAlreadyExistException() {
-        var updatedAddress = getAddress();
-        when(addressRepository.findByCountryAndCityAndStreetAndHouseNumber(updatedAddress))
-                .thenReturn(Optional.of(updatedAddress));
-
-        assertThrows(EntityAlreadyExistException.class, () -> addressService.update(updatedAddress));
-    }
-
-    @Test
-    void deleteSuccess() {
-        var id = 1L;
+        var airportId = 1L;
         var address = getAddress();
-        address.setId(id);
-        when(addressRepository.findById(id)).thenReturn(Optional.of(new Address()));
+        when(addressRepository.findByAirportId(airportId)).thenReturn(Optional.empty());
 
-        addressService.deleteById(id);
-
-        verify(addressRepository).findById(id);
-        verify(addressRepository).deleteById(id);
-    }
-
-    @Test
-    void deleteThrowNotFoundException() {
-        var id = 1L;
-        var address = getAddress();
-        address.setId(id);
-        when(addressRepository.findById(id)).thenReturn(Optional.empty());
-
-        assertThrows(EntityNotFoundException.class, () -> addressService.deleteById(id));
-
-        verify(addressRepository).findById(id);
+        assertThrows(EntityNotFoundException.class, () -> addressService.update(address, airportId));
     }
 
     private Address getAddress() {

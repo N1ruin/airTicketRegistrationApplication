@@ -5,6 +5,7 @@ public class Airport {
     private String code;
     private String name;
     private Address address;
+    private AirportStatus airportStatus;
 
     public Long getId() {
         return id;
@@ -36,5 +37,13 @@ public class Airport {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public AirportStatus getAirportStatus() {
+        return airportStatus;
+    }
+
+    public void setAirportStatus(AirportStatus airportStatus) {
+        this.airportStatus = airportStatus;
     }
 }

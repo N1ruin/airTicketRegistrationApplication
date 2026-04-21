@@ -4,15 +4,14 @@ import converter.user.UserDtoConverter;
 import domain.Role;
 import domain.User;
 import dto.user.UserDto;
-import exception.EntityNotFoundException;
-import exception.InvalidCredentialsException;
-import exception.UserAlreadyExistException;
+import exception.*;
 import repository.TransactionHelper;
 import repository.UserRepository;
 import sequrity.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 public class UserService {
     private final UserRepository userRepository;
@@ -56,8 +55,9 @@ public class UserService {
         unblockTransactional(id);
     }
 
-    public void update(Long id, String newPassword, String firstName, String lastName, String fatherName) {
-        updateTransactional(id, newPassword, firstName, lastName, fatherName);
+    public User update(Long id, String newPassword, String firstName, String lastName, String fatherName,
+                       Long currentUserId) {
+        return updateTransactional(id, newPassword, firstName, lastName, fatherName, currentUserId);
     }
 
     private User signUpTransactional(User user) {
@@ -134,18 +134,34 @@ public class UserService {
                 });
     }
 
-    private void updateTransactional(Long id, String newPassword, String firstName, String lastName, String fatherName) {
-        transactionHelper.executeInTransaction(() -> {
+    private User updateTransactional(Long id, String newPassword, String firstName, String lastName, String fatherName,
+                                     Long currentUserId) {
+        return transactionHelper.executeInTransaction(() -> {
+            if (!Objects.equals(id, currentUserId)) {
+                throw new DontHavePermissionException("You can't update someone else's user");
+            }
+
             var user = getUserById(id);
 
-            var passwordHash = passwordEncoder.encode(newPassword);
+            if (newPassword == null && firstName == null && lastName == null && fatherName == null) {
+                return user;
+            }
 
-            user.setPasswordHash(passwordHash);
-            user.setFirstName(firstName);
-            user.setLastName(lastName);
-            user.setFatherName(fatherName);
+            if (newPassword != null) {
+                var passwordHash = passwordEncoder.encode(newPassword);
+                user.setPasswordHash(passwordHash);
+            }
+            if (firstName != null) {
+                user.setFirstName(firstName);
+            }
+            if (lastName != null) {
+                user.setLastName(lastName);
+            }
+            if (fatherName != null) {
+                user.setFatherName(fatherName);
+            }
 
-            userRepository.update(user);
+            return userRepository.update(user);
         });
     }
 

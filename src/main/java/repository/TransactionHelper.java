@@ -11,29 +11,39 @@ public class TransactionHelper {
     }
 
     public <T> T executeInTransaction(Supplier<T> action) {
+        var connection = connectionHelper.getConnection();
         var isFirstTransaction = false;
-        try (var connection = connectionHelper.getConnection()) {
-            try {
-                if (connection.getAutoCommit()) {
-                    connection.setAutoCommit(false);
-                    isFirstTransaction = true;
-                }
-
-                T result = action.get();
-
-                if (isFirstTransaction) {
-                    connection.commit();
-                }
-
-                return result;
-            } catch (Exception e) {
-                connection.rollback();
-                throw new RuntimeException(e);
+        try {
+            if (connection.getAutoCommit()) {
+                connection.setAutoCommit(false);
+                isFirstTransaction = true;
             }
-        } catch (SQLException e) {
+
+            T result = action.get();
+
+            if (isFirstTransaction) {
+                connection.commit();
+            }
+
+            return result;
+        } catch (Exception e) {
+            try {
+                if (!connection.isClosed()) {
+                    connection.rollback();
+                }
+            } catch (SQLException rollbackEx) {
+                e.addSuppressed(rollbackEx);
+            }
+
+            if (e instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+
             throw new RuntimeException(e);
         } finally {
-            connectionHelper.closeConnection();
+            if (isFirstTransaction) {
+                connectionHelper.closeConnection();
+            }
         }
     }
 

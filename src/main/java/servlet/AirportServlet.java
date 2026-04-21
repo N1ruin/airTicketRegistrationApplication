@@ -2,12 +2,20 @@ package servlet;
 
 import dto.airport.CreateAirportRequest;
 import dto.airport.UpdateAirportRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import converter.airport.*;
+import jakarta.ws.rs.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.AirportService;
@@ -20,6 +28,7 @@ import java.io.IOException;
 import static constant.AttributeName.*;
 
 @WebServlet("/api/v1/airport")
+@Path("/ticket-app/api/v1/airport")
 public class AirportServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(AirportServlet.class);
     private HttpHelper httpHelper;
@@ -52,15 +61,24 @@ public class AirportServlet extends HttpServlet {
                 (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
         permissionChecker = (PermissionChecker) context.getAttribute(PERMISSION_CHECKER);
 
-
         log.info("Servlet {} initialization finish", getClass().getSimpleName());
     }
 
+    @POST
+    @Operation(tags = {"Airports"}, summary = "Создание аэропорта",
+            description = "Создание аэропорта",
+            requestBody = @RequestBody(description = "Данные аэропорта и адреса", required = true,
+                    content = @Content(schema = @Schema(implementation = CreateAirportRequest.class))),
+            responses = {@ApiResponse(responseCode = "200", description = "Успех"),
+                    @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
+                    @ApiResponse(responseCode = "401", description = "Не авторизован"),
+                    @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+                    @ApiResponse(responseCode = "404", description = "Аэропорт не найден")})
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void doPost(@Parameter(hidden = true) HttpServletRequest req,
+                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
         if (!permissionChecker.isAdmin(req)) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-
             return;
         }
 
@@ -78,8 +96,19 @@ public class AirportServlet extends HttpServlet {
         httpHelper.writeResponseBody(resp, dto);
     }
 
+    @GET
+    @Operation(tags = {"Airports"}, summary = "Получение аэропорта или списка аэропортов",
+            description = "Если id не передан, возвращает все аэропорты",
+            parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "Id аэропорта", example = "1",
+                    schema = @Schema(type = "integer", format = "int64"))},
+            responses = {@ApiResponse(responseCode = "200", description = "Успех"),
+                    @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
+                    @ApiResponse(responseCode = "401", description = "Не авторизован"),
+                    @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+                    @ApiResponse(responseCode = "404", description = "Аэропорт не найден")})
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void doGet(@Parameter(hidden = true) HttpServletRequest req,
+                      @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
         var id = parameterExtractor.extractId(req);
 
         if (id == null) {
@@ -89,8 +118,19 @@ public class AirportServlet extends HttpServlet {
         }
     }
 
+    @PUT
+    @Operation(tags = {"Airports"}, summary = "Обновление данных аэропорта по id",
+            description = "Обновление аэропорта по id",
+            requestBody = @RequestBody(description = "Обновленные данные аэропорта", required = true,
+                    content = @Content(schema = @Schema(implementation = UpdateAirportRequest.class))),
+            responses = {@ApiResponse(responseCode = "200", description = "Успех"),
+                    @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
+                    @ApiResponse(responseCode = "401", description = "Не авторизован"),
+                    @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+                    @ApiResponse(responseCode = "404", description = "Аэропорт не найден")})
     @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void doPut(@Parameter(hidden = true) HttpServletRequest req,
+                      @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
         if (!permissionChecker.isAdmin(req)) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
@@ -111,8 +151,19 @@ public class AirportServlet extends HttpServlet {
         httpHelper.writeResponseBody(resp, dto);
     }
 
+    @DELETE
+    @Operation(tags = {"Airports"}, summary = "Удаление аэропорта по id",
+            description = "Удаление аэропорта по id",
+            parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "Id аэропорта", example = "1",
+                    schema = @Schema(type = "integer", format = "int64"))},
+            responses = {@ApiResponse(responseCode = "200", description = "Успех"),
+                    @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
+                    @ApiResponse(responseCode = "401", description = "Не авторизован"),
+                    @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+                    @ApiResponse(responseCode = "404", description = "Аэропорт не найден")})
     @Override
-    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void doDelete(@Parameter(hidden = true) HttpServletRequest req,
+                         @Parameter(hidden = true) HttpServletResponse resp) {
         if (!permissionChecker.isAdmin(req)) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
@@ -120,12 +171,6 @@ public class AirportServlet extends HttpServlet {
         }
 
         var id = parameterExtractor.extractId(req);
-
-        if (id == null) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            httpHelper.writeResponseBody(resp, "Parameter 'id' is required for deletion");
-            return;
-        }
 
         requestParameterValidationService.validateId(id);
 

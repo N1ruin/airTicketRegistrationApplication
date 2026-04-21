@@ -16,10 +16,18 @@
         </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
+    <servlet>
+        <servlet-name>WebjarsServlet</servlet-name>
+        <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+    </servlet>
 
     <servlet-mapping>
+        <servlet-name>WebjarsServlet</servlet-name>
+        <url-pattern>/webjars/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
         <servlet-name>OpenApiServlet</servlet-name>
-        <url-pattern>/openapi.json</url-pattern>
+        <url-pattern>/swagger</url-pattern>
     </servlet-mapping>
     <listener>
         <listener-class>listener.InitAttributeServletContextListener</listener-class>

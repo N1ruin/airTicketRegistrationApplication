@@ -26,7 +26,6 @@ class AirportValidationServiceTest {
     private AddressValidationService addressValidationService;
     @Mock
     private RequestParameterValidationService requestParameterValidationService;
-
     @InjectMocks
     private AirportValidationService airportValidationService;
 

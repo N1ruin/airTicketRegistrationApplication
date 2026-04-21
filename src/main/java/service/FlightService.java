@@ -2,7 +2,6 @@ package service;
 
 import domain.Flight;
 import exception.EntityNotFoundException;
-import repository.AirportRepository;
 import repository.FlightRepository;
 import repository.TransactionHelper;
 
@@ -11,13 +10,13 @@ import java.util.List;
 public class FlightService {
     private final FlightRepository flightRepository;
     private final TransactionHelper transactionHelper;
-    private final AirportRepository airportRepository;
+    private final AirportService airportService;
 
     public FlightService(FlightRepository flightRepository, TransactionHelper transactionHelper,
-                         AirportRepository airportRepository) {
+                         AirportService airportService) {
         this.flightRepository = flightRepository;
         this.transactionHelper = transactionHelper;
-        this.airportRepository = airportRepository;
+        this.airportService = airportService;
     }
 
     public Flight save(Flight flight) {
@@ -43,10 +42,13 @@ public class FlightService {
     private Flight saveTransactional(Flight flight) {
         return transactionHelper.executeInTransaction(() -> {
             var departureAirportCode = flight.getDepartureAirport().getCode();
-            findAirportByCode(departureAirportCode);
+            var departureAirport = airportService.findByCode(departureAirportCode);
 
             var arrivalAirportCode = flight.getArrivalAirport().getCode();
-            findAirportByCode(arrivalAirportCode);
+            var arrivalAirport = airportService.findByCode(arrivalAirportCode);
+
+            flight.setDepartureAirport(departureAirport);
+            flight.setArrivalAirport(arrivalAirport);
 
             return flightRepository.save(flight);
         });
@@ -63,9 +65,18 @@ public class FlightService {
 
     private Flight updateTransactional(Flight flight) {
         return transactionHelper.executeInTransaction(() -> {
-            findByIdTransactional(flight.getId());
+            var existedFlight = findByIdTransactional(flight.getId());
+            var existedDepartureAirport = airportService.findByCode(flight.getDepartureAirport().getCode());
+            var existedArrivalAirport = airportService.findByCode(flight.getArrivalAirport().getCode());
 
-            return flightRepository.update(flight);
+            existedFlight.setDepartureAirport(existedDepartureAirport);
+            existedFlight.setArrivalAirport(existedArrivalAirport);
+            existedFlight.setFreeSeats(flight.getFreeSeats());
+            existedFlight.setAllSeats(flight.getAllSeats());
+            existedFlight.setDepartureDate(flight.getDepartureDate());
+            existedFlight.setArrivalDate(flight.getArrivalDate());
+
+            return flightRepository.update(existedFlight);
         });
     }
 
@@ -76,11 +87,5 @@ public class FlightService {
 
             flightRepository.deleteById(id);
         });
-    }
-
-    private void findAirportByCode(String code) {
-        airportRepository.findByCode(code)
-                .orElseThrow(() -> new EntityNotFoundException("Airport with code %s not found"
-                        .formatted(code)));
     }
 }

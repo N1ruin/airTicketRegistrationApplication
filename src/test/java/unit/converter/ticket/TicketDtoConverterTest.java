@@ -38,6 +38,7 @@ class TicketDtoConverterTest {
         var passengerMock = mock(Passenger.class);
         var passengerDtoMock = mock(PassengerDto.class);
         var ticket = new Ticket();
+        ticket.setId(1L);
         ticket.setTicketNumber(1L);
         ticket.setTicketStatus(TicketStatus.ACTIVE);
         ticket.setServiceClass(ServiceClass.STANDARD);
@@ -53,6 +54,7 @@ class TicketDtoConverterTest {
         var result = ticketDtoConverter.convert(ticket);
 
         assertNotNull(result);
+        assertEquals(1, result.id());
         assertEquals(TicketStatus.ACTIVE, result.ticketStatus());
         assertEquals(ServiceClass.STANDARD, result.serviceClass());
         assertEquals(flightDtoMock, result.flight());

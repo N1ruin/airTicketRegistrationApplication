@@ -17,7 +17,4 @@ public interface FlightRepository extends Repository<Flight> {
 
     @Override
     Flight update(Flight entity);
-
-    @Override
-    void deleteById(long id);
 }

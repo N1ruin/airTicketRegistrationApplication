@@ -1,7 +1,10 @@
 package repository.impl;
 
 import domain.Passport;
+import exception.RepositoryException;
 import mapper.PassportResultSetMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import repository.ConnectionHelper;
 import repository.PassportRepository;
 
@@ -10,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class PassportRepositoryImpl implements PassportRepository {
+    public static final Logger log = LogManager.getLogger(PassportRepositoryImpl.class);
     private final ConnectionHelper connectionHelper;
     private final PassportResultSetMapper passportResultSetMapper;
 
@@ -43,13 +47,35 @@ public class PassportRepositoryImpl implements PassportRepository {
 
             return passport;
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.error(e);
+            throw new RepositoryException("Passport saving error");
         }
     }
 
     @Override
     public Optional<Passport> findById(Long id) {
-        throw new UnsupportedOperationException();
+        var sql = """
+                SELECT id AS passport_id,
+                       passport_series,
+                       passport_number,
+                       citizenship AS passport_citizenship,
+                       passport_issue_date,
+                       passport_expired_date
+                FROM tickets_application.passport
+                WHERE id = ?
+                """;
+
+        var connection = connectionHelper.getConnection();
+        try (var preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, id);
+
+            var resultSet = preparedStatement.executeQuery();
+
+            return resultSet.next() ? passportResultSetMapper.map(resultSet) : Optional.empty();
+        } catch (SQLException e) {
+            log.error("Error finding passport by id {}", id, e);
+            throw new RepositoryException("Passport find by id error");
+        }
     }
 
     @Override
@@ -79,19 +105,32 @@ public class PassportRepositoryImpl implements PassportRepository {
 
             return passport;
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.error(e);
+            throw new RepositoryException("Passport update error");
         }
     }
 
     @Override
-    public void deleteById(long id) {
-        throw new UnsupportedOperationException();
+    public void deleteById(Long id) {
+        var sql = "DELETE FROM tickets_application.passport WHERE id = ?";
+
+        var connection = connectionHelper.getConnection();
+        try (var preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, id);
+
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            log.error("Error deleting passport by id {}", id, e);
+            throw new RepositoryException("Passport delete error");
+        }
     }
 
     @Override
     public Optional<Passport> findBySeriesAndNumberAndCitizenship(String series, String number, String citizenship) {
         var sql = """
-                SELECT * FROM tickets_application.passport
+                SELECT id AS passport_id, passport_series, passport_number, citizenship AS passport_citizenship,
+                       passport_issue_date, passport_expired_date 
+                FROM tickets_application.passport
                 WHERE passport_series = ? AND passport_number = ? AND citizenship = ?
                 """;
 
@@ -103,9 +142,10 @@ public class PassportRepositoryImpl implements PassportRepository {
 
             var resultSet = preparedStatement.executeQuery();
 
-            return passportResultSetMapper.map(resultSet);
+            return resultSet.next() ? passportResultSetMapper.map(resultSet) : Optional.empty();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.error(e);
+            throw new RepositoryException("Passport find by series and number and citizenship error");
         }
     }
 }

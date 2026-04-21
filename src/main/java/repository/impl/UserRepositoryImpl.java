@@ -1,6 +1,7 @@
 package repository.impl;
 
 import domain.User;
+import exception.RepositoryException;
 import mapper.UserResultSetMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +9,7 @@ import repository.ConnectionHelper;
 import repository.UserRepository;
 
 import java.sql.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,7 +50,7 @@ public class UserRepositoryImpl implements UserRepository {
                 """;
 
         var connection = connectionHelper.getConnection();
-        try (var preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(user, preparedStatement);
 
             var resultSet = preparedStatement.executeQuery();
@@ -59,7 +61,7 @@ public class UserRepositoryImpl implements UserRepository {
             return user;
         } catch (SQLException e) {
             log.error("Save user with email {} error", user.getEmail(), e);
-            throw new RuntimeException(e);
+            throw new RepositoryException(Arrays.toString(e.getStackTrace()));
         }
     }
 
@@ -75,7 +77,7 @@ public class UserRepositoryImpl implements UserRepository {
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
             log.error("Select by id {} error", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("User find by id error");
         }
     }
 
@@ -88,7 +90,7 @@ public class UserRepositoryImpl implements UserRepository {
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
             log.error("Find all users error", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("User find all error");
         }
     }
 
@@ -122,12 +124,12 @@ public class UserRepositoryImpl implements UserRepository {
             return user;
         } catch (SQLException e) {
             log.error("User with email {} update error", user.getEmail(), e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("User update error");
         }
     }
 
     @Override
-    public void deleteById(long id) {
+    public void deleteById(Long id) {
         var sql = "DELETE FROM tickets_application.users WHERE id = ?";
 
         var connection = connectionHelper.getConnection();
@@ -137,7 +139,7 @@ public class UserRepositoryImpl implements UserRepository {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             log.error("Delete user with id {} error", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("User delete error");
         }
     }
 

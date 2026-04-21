@@ -1,12 +1,17 @@
 package servlet;
 
 import converter.ticket.TicketDtoConverter;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.HttpHelper;
@@ -15,9 +20,9 @@ import service.TicketService;
 import java.io.IOException;
 
 import static constant.AttributeName.*;
-import static constant.AttributeName.TICKET_SERVICE;
 
 @WebServlet("/api/v1/ticket/actual")
+@Path("/ticket-app/api/v1/ticket/actual")
 public class ActualTicketServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(ActualTicketServlet.class);
     private HttpHelper httpHelper;
@@ -41,9 +46,15 @@ public class ActualTicketServlet extends HttpServlet {
         log.info("Servlet {} initialization finish", getClass().getSimpleName());
     }
 
-
+    @GET
+    @Operation(tags = {"Tickets"}, summary = "Получение списка актуальных билетов пользователя",
+            description = "Возвращает все атуальные билеты пользователя",
+            responses = {@ApiResponse(responseCode = "200", description = "Успех"),
+                    @ApiResponse(responseCode = "401", description = "Не авторизован"),
+                    @ApiResponse(responseCode = "403", description = "Доступ запрещен")})
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void doGet(@Parameter(hidden = true) HttpServletRequest req,
+                      @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
         boolean isAdmin = permissionChecker.isAdmin(req);
 
         if (isAdmin) {

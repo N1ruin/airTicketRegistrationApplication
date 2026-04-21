@@ -1,6 +1,8 @@
 package repository.impl;
 
 import domain.Airport;
+import domain.AirportStatus;
+import exception.RepositoryException;
 import mapper.AirportResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +19,7 @@ public class AirportRepositoryImpl implements AirportRepository {
             SELECT airport.id AS airport_id,
                    airport.code AS airport_code,
                    airport.name AS airport_name,
+                   airport.status AS airport_status,
                    address.id AS address_id,
                    address.country AS address_country,
                    address.city AS address_city,
@@ -36,8 +39,8 @@ public class AirportRepositoryImpl implements AirportRepository {
     @Override
     public Airport save(Airport airport) {
         var sql = """
-                INSERT INTO tickets_application.airport(code, name, address_id)
-                VALUES (?, ?, ?)
+                INSERT INTO tickets_application.airport(code, name, address_id, status)
+                VALUES (?, ?, ?, ?)
                 RETURNING id;
                 """;
 
@@ -47,16 +50,18 @@ public class AirportRepositoryImpl implements AirportRepository {
             preparedStatement.setString(1, airport.getCode());
             preparedStatement.setString(2, airport.getName());
             preparedStatement.setLong(3, airport.getAddress().getId());
+            preparedStatement.setString(4, AirportStatus.WORKS.name());
 
             var resultSet = preparedStatement.executeQuery();
 
             resultSet.next();
             airport.setId(resultSet.getLong(1));
+            airport.setAirportStatus(AirportStatus.WORKS);
 
             return airport;
         } catch (SQLException e) {
             log.error("Airport save in database error.", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Airport saving error");
         }
     }
 
@@ -73,7 +78,7 @@ public class AirportRepositoryImpl implements AirportRepository {
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
             log.error("Airport find by id {} error.", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Airport find by id error");
         }
     }
 
@@ -86,14 +91,14 @@ public class AirportRepositoryImpl implements AirportRepository {
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
             log.error("Airport find all error.", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Airport find all error");
         }
     }
 
     @Override
     public Airport update(Airport airport) {
         var sql = """
-                UPDATE tickets_application.airport SET code = ?, name = ?, address_id = ? WHERE id = ?
+                UPDATE tickets_application.airport SET code = ?, name = ?, address_id = ?, status = ? WHERE id = ?
                 """;
 
         var connection = connectionHelper.getConnection();
@@ -101,31 +106,33 @@ public class AirportRepositoryImpl implements AirportRepository {
             preparedStatement.setString(1, airport.getCode());
             preparedStatement.setString(2, airport.getName());
             preparedStatement.setLong(3, airport.getAddress().getId());
-            preparedStatement.setLong(4, airport.getId());
+            preparedStatement.setString(4, airport.getAirportStatus().name());
+            preparedStatement.setLong(5, airport.getId());
 
             preparedStatement.executeUpdate();
 
             return airport;
         } catch (SQLException e) {
             log.error("Airport with id {} update error.", airport.getId(), e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Airport update error");
         }
     }
 
     @Override
-    public void deleteById(long id) {
+    public void deleteById(Long id) {
         var sql = """
-                DELETE FROM tickets_application.airport WHERE id = ?
+                UPDATE tickets_application.airport SET status = ? WHERE id = ?
                 """;
 
         var connection = connectionHelper.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, id);
+            preparedStatement.setString(1, AirportStatus.CLOSED.name());
+            preparedStatement.setLong(2, id);
 
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             log.error("Airport with id {} delete error.", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Airport delete error");
         }
     }
 
@@ -141,7 +148,7 @@ public class AirportRepositoryImpl implements AirportRepository {
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
             log.error("Get airport by code {} error.", code, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Airport find by code error");
         }
     }
 }

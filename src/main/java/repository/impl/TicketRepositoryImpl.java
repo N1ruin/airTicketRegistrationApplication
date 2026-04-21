@@ -2,6 +2,7 @@ package repository.impl;
 
 import domain.Ticket;
 import domain.TicketStatus;
+import exception.RepositoryException;
 import mapper.TicketResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,6 +36,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             departure_airport.id AS departure_airport_id,
             departure_airport.code AS departure_airport_code,
             departure_airport.name AS departure_airport_name,
+            departure_airport.status AS departure_airport_status,
             departure_address.id AS departure_address_id,
             departure_address.country AS departure_address_country,
             departure_address.city AS departure_address_city,
@@ -43,6 +45,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             arrival_airport.id AS arrival_airport_id,
             arrival_airport.code AS arrival_airport_code,
             arrival_airport.name AS arrival_airport_name,
+             arrival_airport.status AS arrival_airport_status,
             arrival_address.id AS arrival_address_id,
             arrival_address.country AS arrival_address_country,
             arrival_address.city AS arrival_address_city,
@@ -58,6 +61,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             passport.id AS passport_id,
             passport.passport_series AS passport_series,
             passport.passport_number AS passport_number,
+            passport.citizenship AS passport_citizenship,
             passport.passport_issue_date AS passport_issue_date,
             passport.passport_expired_date AS passport_expired_date
             FROM tickets_application.ticket AS ticket
@@ -97,7 +101,6 @@ public class TicketRepositoryImpl implements TicketRepository {
             preparedStatement.setTimestamp(6, Timestamp.valueOf(ticket.getPurchaseDate()));
             preparedStatement.setDouble(7, ticket.getBaggageWeight());
             preparedStatement.setDouble(8, ticket.getCarryOnBaggageWeight());
-            preparedStatement.setLong(9, ticket.getPassenger().getUserId());
 
             var resultSet = preparedStatement.executeQuery();
 
@@ -109,7 +112,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             return ticket;
         } catch (SQLException e) {
             log.error("Ticket save error", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Ticket save error");
         }
     }
 
@@ -126,7 +129,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
             log.error("Ticket find by id {} error.", id, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Ticket find by id error");
         }
     }
 
@@ -139,7 +142,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
             log.error("Find all tickets error", e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Tickets find all error");
         }
     }
 
@@ -149,7 +152,7 @@ public class TicketRepositoryImpl implements TicketRepository {
     }
 
     @Override
-    public void deleteById(long id) {
+    public void deleteById(Long id) {
         var sql = """
                 UPDATE tickets_application.ticket SET ticket_status = ?, updated_date = ? WHERE id = ?
                 """;
@@ -162,8 +165,8 @@ public class TicketRepositoryImpl implements TicketRepository {
 
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            log.error("Refund ticket with id {} error", id, e);
-            throw new RuntimeException(e);
+            log.error("Ticket with id {} delete error", id, e);
+            throw new RepositoryException("Ticket delete error");
         }
     }
 
@@ -181,7 +184,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
             log.error("Ticket find by flightId {} and passenger id {} error.", flightId, passengerId, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Ticket find by flight and passenger id error");
         }
     }
 
@@ -199,7 +202,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
             log.error("Ticket find by flight id {} and seat number {} error.", id, seatNumber, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Ticket find by flight id and seat number error");
         }
     }
 
@@ -216,13 +219,13 @@ public class TicketRepositoryImpl implements TicketRepository {
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
             log.error("Find all by user id {} error.", userId, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Ticket find all by user id error");
         }
     }
 
     @Override
     public List<Ticket> findAllActualByUserId(Long currentUserId) {
-        var sql = SELECT_QUERY + " WHERE passenger.user_id = ? AND flight.departure_date > now()";
+        var sql = SELECT_QUERY + " WHERE passenger.user_id = ? AND flight.departure_date > now() AND ticket.ticket_status != 'REFUNDED'";
 
         var connection = connectionHelper.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
@@ -233,7 +236,7 @@ public class TicketRepositoryImpl implements TicketRepository {
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
             log.error("Find all actual tickets by user id {} error.", currentUserId, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("Ticket find all actual error");
         }
     }
 }

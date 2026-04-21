@@ -2,16 +2,36 @@ package dto.passenger;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import dto.passport.PassportDto;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 
-public record PassengerDto(Long id,
-                           String firstName,
-                           String lastName,
-                           String fatherName,
-                           boolean male,
-                           @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-                           LocalDate birthDate,
-                           PassportDto passportDto,
-                           Long userId) {
+@Schema(description = "Информация о пассажире")
+public record PassengerDto(
+        @Schema(description = "Id пассажира", example = "10",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        Long id,
+
+        @Schema(description = "Имя", example = "Иван")
+        String firstName,
+
+        @Schema(description = "Фамилия", example = "Иванов")
+        String lastName,
+
+        @Schema(description = "Отчество", example = "Иванович", nullable = true)
+        String fatherName,
+
+        @Schema(description = "Пол (true — мужской, false — женский)", example = "true")
+        boolean male,
+
+        @Schema(description = "Дата рождения", example = "1990-05-15",
+                type = "string", pattern = "yyyy-MM-dd")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+        LocalDate birthDate,
+
+        @Schema(description = "Данные паспорта")
+        PassportDto passportDto,
+
+        @Schema(description = "Идентификатор пользователя-владельца профиля", example = "1")
+        Long userId) {
 }
