@@ -29,11 +29,9 @@ public class AirportRepositoryImpl implements AirportRepository {
             JOIN tickets_application.address AS address ON airport.address_id = address.id
             """;
     private final SessionHelper connectionHelper;
-    private final AirportResultSetMapper resultSetMapper;
 
-    public AirportRepositoryImpl(SessionHelper connectionHelper, AirportResultSetMapper resultSetMapper) {
+    public AirportRepositoryImpl(SessionHelper connectionHelper) {
         this.connectionHelper = connectionHelper;
-        this.resultSetMapper = resultSetMapper;
     }
 
     @Override

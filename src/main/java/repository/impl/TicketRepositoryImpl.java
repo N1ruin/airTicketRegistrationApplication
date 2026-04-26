@@ -74,11 +74,9 @@ public class TicketRepositoryImpl implements TicketRepository {
             JOIN tickets_application.passport AS passport ON passenger.passport_id = passport.id
             """;
     private final SessionHelper connectionHelper;
-    private final TicketResultSetMapper resultSetMapper;
 
-    public TicketRepositoryImpl(SessionHelper connectionHelper, TicketResultSetMapper ticketResultSetMapper) {
+    public TicketRepositoryImpl(SessionHelper connectionHelper) {
         this.connectionHelper = connectionHelper;
-        this.resultSetMapper = ticketResultSetMapper;
     }
 
     @Override

@@ -17,11 +17,9 @@ public class UserRepositoryImpl implements UserRepository {
     private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
     private static final String SELECT_QUERY = "SELECT * FROM tickets_application.users";
     private final SessionHelper connectionHelper;
-    private final UserResultSetMapper resultSetMapper;
 
-    public UserRepositoryImpl(SessionHelper connectionHelper, UserResultSetMapper resultSetMapper) {
+    public UserRepositoryImpl(SessionHelper connectionHelper) {
         this.connectionHelper = connectionHelper;
-        this.resultSetMapper = resultSetMapper;
     }
 
     @Override

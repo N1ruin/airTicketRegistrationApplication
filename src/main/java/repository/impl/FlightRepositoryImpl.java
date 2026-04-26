@@ -45,11 +45,9 @@ public class FlightRepositoryImpl implements FlightRepository {
             JOIN tickets_application.address AS departure_address ON departure_airport.address_id = departure_address.id
             JOIN tickets_application.address AS arrival_address ON arrival_airport.address_id = arrival_address.id
             """;
-    private final FlightResultSetMapper resultSetMapper;
     private final SessionHelper connectionHelper;
 
-    public FlightRepositoryImpl(FlightResultSetMapper resultSetMapper, SessionHelper connectionHelper) {
-        this.resultSetMapper = resultSetMapper;
+    public FlightRepositoryImpl(SessionHelper connectionHelper) {
         this.connectionHelper = connectionHelper;
     }
 

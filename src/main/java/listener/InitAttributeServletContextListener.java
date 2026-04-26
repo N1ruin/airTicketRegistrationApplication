@@ -77,8 +77,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
         var permissionChecker = new PermissionChecker(sessionAttributeExtractor);
         context.setAttribute(PERMISSION_CHECKER, permissionChecker);
 
-        var userResultSetMapper = new UserResultSetMapper();
-        var userRepository = new UserRepositoryImpl(sessionHelper, userResultSetMapper);
+        var userRepository = new UserRepositoryImpl(sessionHelper);
         var userSignUpRequestConverter = new UserSignUpRequestConverter(passwordEncoder);
         context.setAttribute(USER_SIGN_UP_REQUEST_CONVERTER, userSignUpRequestConverter);
         var userSignUpResponseConverter = new UserSignUpResponseConverter();
@@ -94,20 +93,18 @@ public class InitAttributeServletContextListener implements ServletContextListen
 
         var addressValidationService = new AddressValidationService();
         context.setAttribute(ADDRESS_VALIDATION_SERVICE, addressValidationService);
-        var addressResultSetMapper = new AddressResultSetMapper();
         var addressConverter = new AddressConverter();
         context.setAttribute(ADDRESS_CONVERTER, addressConverter);
         var addressDtoConverter = new AddressDtoConverter();
         context.setAttribute(ADDRESS_DTO_CONVERTER, addressDtoConverter);
-        var addressRepository = new AddressRepositoryImpl(sessionHelper, addressResultSetMapper);
+        var addressRepository = new AddressRepositoryImpl(sessionHelper);
         var addressService = new AddressService(transactionHelper, addressRepository);
         context.setAttribute(ADDRESS_SERVICE, addressService);
 
         var airportValidationService =
                 new AirportValidationService(addressValidationService, requestParameterValidationService);
         context.setAttribute(AIRPORT_VALIDATION_SERVICE, airportValidationService);
-        var airportResultSetMapper = new AirportResultSetMapper(addressResultSetMapper);
-        var airportRepository = new AirportRepositoryImpl(sessionHelper, airportResultSetMapper);
+        var airportRepository = new AirportRepositoryImpl(sessionHelper);
         var airportConverter = new AirportConverter(addressConverter);
         context.setAttribute(AIRPORT_CONVERTER, airportConverter);
         var createAirportRequestConverter = new CreateAirportRequestConverter(addressDtoConverter);
@@ -129,13 +126,11 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(PASSPORT_CONVERTER, passportConverter);
         var passportValidationService = new PassportValidationService();
         context.setAttribute(PASSPORT_VALIDATION_SERVICE, passportValidationService);
-        var passportResultSetMapper = new PassportResultSetMapper();
-        var passportRepository = new PassportRepositoryImpl(sessionHelper, passportResultSetMapper);
+        var passportRepository = new PassportRepositoryImpl(sessionHelper);
         var passportService = new PassportService(transactionHelper, passportRepository);
         context.setAttribute(PASSPORT_SERVICE, passportService);
 
-        var passengerResultSetMapper = new PassengerResultSetMapper(passportResultSetMapper);
-        var passengerRepository = new PassengerRepositoryImpl(sessionHelper, passengerResultSetMapper);
+        var passengerRepository = new PassengerRepositoryImpl(sessionHelper);
         var passengerService = new PassengerService(passengerRepository, airportService, passportService, transactionHelper);
         context.setAttribute(PASSENGER_SERVICE, passengerService);
         var passengerValidationService =
@@ -165,14 +160,12 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(UPDATE_FLIGHT_REQUEST_CONVERTER, updateFlightRequestConverter);
         var updateFlightResponseConverter = new UpdateFlightResponseConverter(airportConverter);
         context.setAttribute(UPDATE_FLIGHT_RESPONSE_CONVERTER, updateFlightResponseConverter);
-        var flightResultSetMapper = new FlightResultSetMapper();
-        var flightRepository = new FlightRepositoryImpl(flightResultSetMapper, sessionHelper);
+        var flightRepository = new FlightRepositoryImpl(sessionHelper);
         var flightService = new FlightService(flightRepository, transactionHelper, airportService);
         context.setAttribute(FLIGHT_SERVICE, flightService);
         var flightConverter = new FlightDtoConverter(airportDtoConverter);
 
-        var ticketResultSetMapper = new TicketResultSetMapper(passportResultSetMapper);
-        var ticketRepository = new TicketRepositoryImpl(sessionHelper, ticketResultSetMapper);
+        var ticketRepository = new TicketRepositoryImpl(sessionHelper);
         var ticketService = new TicketService(transactionHelper, ticketRepository, passengerService, airportService,
                 flightService);
         context.setAttribute(TICKET_SERVICE, ticketService);
