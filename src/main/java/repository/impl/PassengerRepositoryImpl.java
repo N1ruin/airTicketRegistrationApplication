@@ -5,7 +5,7 @@ import exception.RepositoryException;
 import mapper.PassengerResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import repository.ConnectionHelper;
+import repository.SessionHelper;
 import repository.PassengerRepository;
 
 import java.sql.PreparedStatement;
@@ -32,10 +32,10 @@ public class PassengerRepositoryImpl implements PassengerRepository {
             FROM tickets_application.passenger AS passenger
             JOIN tickets_application.passport AS passport ON passenger.passport_id = passport.id
             """;
-    private final ConnectionHelper connectionHelper;
+    private final SessionHelper connectionHelper;
     private final PassengerResultSetMapper resultSetMapper;
 
-    public PassengerRepositoryImpl(ConnectionHelper connectionHelper, PassengerResultSetMapper resultSetMapper) {
+    public PassengerRepositoryImpl(SessionHelper connectionHelper, PassengerResultSetMapper resultSetMapper) {
         this.connectionHelper = connectionHelper;
         this.resultSetMapper = resultSetMapper;
     }
@@ -48,7 +48,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
                 RETURNING id;
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             fillPreparedStatement(passenger, preparedStatement);
             preparedStatement.setLong(6, passenger.getPassport().getId());
@@ -70,7 +70,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
     public Optional<Passenger> findById(Long id) {
         var sql = SELECT_QUERY + " WHERE passenger.id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -87,7 +87,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
     public List<Passenger> findAllByUserId(Long userId) {
         var sql = SELECT_QUERY + " WHERE user_id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, userId);
 
@@ -102,7 +102,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
 
     @Override
     public List<Passenger> findAll() {
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(SELECT_QUERY)) {
             var resultSet = preparedStatement.executeQuery();
 
@@ -121,7 +121,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
                 WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             fillPreparedStatement(passenger, preparedStatement);
             preparedStatement.setLong(6, passenger.getPassport().getId());
@@ -142,7 +142,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
                 DELETE FROM tickets_application.passenger WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -165,7 +165,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
                 VALUES (?, ?, 1)
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try {
             try (var preparedStatement = connection.prepareStatement(updateSql)) {
                 preparedStatement.setLong(1, passengerId);
@@ -196,7 +196,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
                 WHERE passenger_id = ? AND airport_id = ? AND flights_count > 0
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, passengerId);
             preparedStatement.setLong(2, airportId);
@@ -212,7 +212,7 @@ public class PassengerRepositoryImpl implements PassengerRepository {
     public Optional<Passenger> findByPassportId(Long passportId) {
         var sql = SELECT_QUERY + " WHERE passport.id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, passportId);
 

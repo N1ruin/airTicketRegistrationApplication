@@ -1,17 +1,31 @@
 package domain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
+@Entity()
+@Table(name = "passport",
+        schema = "tickets_application",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "passport_unique_series_number",
+                        columnNames = {"passport_series", "passport_number"})})
 public class Passport {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "passport_series", nullable = false)
     private String series;
+    @Column(name = "passport_number", nullable = false)
     private String number;
+    @Column
     private String citizenship;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    @Column(name = "passport_issue_date")
     private LocalDate issueDate;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    @Column(name = "passports_expired_date")
     private LocalDate expiredDate;
 
     public Long getId() {

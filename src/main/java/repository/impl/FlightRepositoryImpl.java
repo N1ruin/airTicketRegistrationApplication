@@ -5,7 +5,7 @@ import exception.RepositoryException;
 import mapper.FlightResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import repository.ConnectionHelper;
+import repository.SessionHelper;
 import repository.FlightRepository;
 
 import java.sql.PreparedStatement;
@@ -46,9 +46,9 @@ public class FlightRepositoryImpl implements FlightRepository {
             JOIN tickets_application.address AS arrival_address ON arrival_airport.address_id = arrival_address.id
             """;
     private final FlightResultSetMapper resultSetMapper;
-    private final ConnectionHelper connectionHelper;
+    private final SessionHelper connectionHelper;
 
-    public FlightRepositoryImpl(FlightResultSetMapper resultSetMapper, ConnectionHelper connectionHelper) {
+    public FlightRepositoryImpl(FlightResultSetMapper resultSetMapper, SessionHelper connectionHelper) {
         this.resultSetMapper = resultSetMapper;
         this.connectionHelper = connectionHelper;
     }
@@ -62,7 +62,7 @@ public class FlightRepositoryImpl implements FlightRepository {
                 RETURNING id;
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(flight, preparedStatement);
 
@@ -82,7 +82,7 @@ public class FlightRepositoryImpl implements FlightRepository {
     public Optional<Flight> findById(Long id) {
         var sql = SELECT_QUERY + " WHERE flight.id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -97,7 +97,7 @@ public class FlightRepositoryImpl implements FlightRepository {
 
     @Override
     public List<Flight> findAll() {
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(SELECT_QUERY)) {
             var resultSet = preparedStatement.executeQuery();
 
@@ -116,7 +116,7 @@ public class FlightRepositoryImpl implements FlightRepository {
                 WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(flight, preparedStatement);
             preparedStatement.setLong(7, flight.getId());
@@ -135,7 +135,7 @@ public class FlightRepositoryImpl implements FlightRepository {
         var sql = """
                 DELETE FROM tickets_application.flight WHERE id = ?
                 """;
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 

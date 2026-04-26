@@ -6,7 +6,7 @@ import exception.RepositoryException;
 import mapper.TicketResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import repository.ConnectionHelper;
+import repository.SessionHelper;
 import repository.TicketRepository;
 
 import java.sql.SQLException;
@@ -73,10 +73,10 @@ public class TicketRepositoryImpl implements TicketRepository {
             JOIN tickets_application.address arrival_address ON arrival_airport.address_id = arrival_address.id
             JOIN tickets_application.passport AS passport ON passenger.passport_id = passport.id
             """;
-    private final ConnectionHelper connectionHelper;
+    private final SessionHelper connectionHelper;
     private final TicketResultSetMapper resultSetMapper;
 
-    public TicketRepositoryImpl(ConnectionHelper connectionHelper, TicketResultSetMapper ticketResultSetMapper) {
+    public TicketRepositoryImpl(SessionHelper connectionHelper, TicketResultSetMapper ticketResultSetMapper) {
         this.connectionHelper = connectionHelper;
         this.resultSetMapper = ticketResultSetMapper;
     }
@@ -91,7 +91,7 @@ public class TicketRepositoryImpl implements TicketRepository {
                 """;
         ticket.setPurchaseDate(LocalDateTime.now());
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, ticket.getTicketStatus().name());
             preparedStatement.setString(2, ticket.getServiceClass().name());
@@ -120,7 +120,7 @@ public class TicketRepositoryImpl implements TicketRepository {
     public Optional<Ticket> findById(Long id) {
         var sql = SELECT_QUERY + " WHERE ticket.id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -135,7 +135,7 @@ public class TicketRepositoryImpl implements TicketRepository {
 
     @Override
     public List<Ticket> findAll() {
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var ps = connection.prepareStatement(SELECT_QUERY)) {
             var resultSet = ps.executeQuery();
 
@@ -157,7 +157,7 @@ public class TicketRepositoryImpl implements TicketRepository {
                 UPDATE tickets_application.ticket SET ticket_status = ?, updated_date = ? WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, TicketStatus.REFUNDED.name());
             preparedStatement.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
@@ -174,7 +174,7 @@ public class TicketRepositoryImpl implements TicketRepository {
     public Optional<Ticket> findByFlightIdAndPassengerId(Long flightId, Long passengerId) {
         var sql = SELECT_QUERY + " WHERE flight.id = ? AND passenger.id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, flightId);
             preparedStatement.setLong(2, passengerId);
@@ -192,7 +192,7 @@ public class TicketRepositoryImpl implements TicketRepository {
     public Optional<Ticket> findByFlightIdAndSeatNumber(Long id, Integer seatNumber) {
         var sql = SELECT_QUERY + " WHERE flight.id = ? AND ticket.seat_number = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
             preparedStatement.setInt(2, seatNumber);
@@ -210,7 +210,7 @@ public class TicketRepositoryImpl implements TicketRepository {
     public List<Ticket> findAllByUserId(Long userId) {
         var sql = SELECT_QUERY + " WHERE passenger.user_id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, userId);
 
@@ -227,7 +227,7 @@ public class TicketRepositoryImpl implements TicketRepository {
     public List<Ticket> findAllActualByUserId(Long currentUserId) {
         var sql = SELECT_QUERY + " WHERE passenger.user_id = ? AND flight.departure_date > now() AND ticket.ticket_status != 'REFUNDED'";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, currentUserId);
 

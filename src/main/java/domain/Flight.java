@@ -1,18 +1,31 @@
 package domain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "flight")
 public class Flight {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "all_seats")
     private Integer allSeats;
+    @Column(name = "free_seats")
     private Integer freeSeats;
+    @ManyToOne
+    @JoinColumn(name = "departure_airport_id")
     private Airport departureAirport;
+    @ManyToOne
+    @JoinColumn(name = "arrival_airport_id")
     private Airport arrivalAirport;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "departure_date")
     private LocalDateTime departureDate;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "arrival_date")
     private LocalDateTime arrivalDate;
 
     public Long getId() {

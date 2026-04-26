@@ -1,10 +1,22 @@
 package domain;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "address", schema = "tickets_application",
+        uniqueConstraints = @UniqueConstraint(name = "unique_address",
+                columnNames = {"country", "city", "street", "house_number"}))
 public class Address {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(length = 70, nullable = false)
     private String country;
+    @Column(length = 100, nullable = false)
     private String city;
+    @Column(length = 100)
     private String street;
+    @Column(name = "house_number")
     private Integer houseNumber;
 
     public Long getId() {

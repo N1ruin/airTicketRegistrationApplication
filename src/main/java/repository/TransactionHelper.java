@@ -1,38 +1,43 @@
 package repository;
 
-import java.sql.SQLException;
+import org.hibernate.Transaction;
+
 import java.util.function.Supplier;
 
 public class TransactionHelper {
-    private final ConnectionHelper connectionHelper;
+    private final SessionHelper sessionHelper;
 
-    public TransactionHelper(ConnectionHelper connectionHelper) {
-        this.connectionHelper = connectionHelper;
+    public TransactionHelper(SessionHelper connectionHelper) {
+        this.sessionHelper = connectionHelper;
     }
 
     public <T> T executeInTransaction(Supplier<T> action) {
-        var connection = connectionHelper.getConnection();
+        var session = sessionHelper.getSession();
+        Transaction transaction = null;
         var isFirstTransaction = false;
+
         try {
-            if (connection.getAutoCommit()) {
-                connection.setAutoCommit(false);
+            if (!session.getTransaction().isActive()) {
+                transaction = session.beginTransaction();
                 isFirstTransaction = true;
+            } else {
+                transaction = session.getTransaction();
             }
 
             T result = action.get();
 
-            if (isFirstTransaction) {
-                connection.commit();
+            if (isFirstTransaction && transaction != null) {
+                transaction.commit();
             }
 
             return result;
         } catch (Exception e) {
-            try {
-                if (!connection.isClosed()) {
-                    connection.rollback();
+            if (isFirstTransaction && transaction != null && transaction.isActive()) {
+                try {
+                    transaction.rollback();
+                } catch (Exception exception) {
+                    e.addSuppressed(exception);
                 }
-            } catch (SQLException rollbackEx) {
-                e.addSuppressed(rollbackEx);
             }
 
             if (e instanceof RuntimeException runtimeException) {
@@ -42,7 +47,7 @@ public class TransactionHelper {
             throw new RuntimeException(e);
         } finally {
             if (isFirstTransaction) {
-                connectionHelper.closeConnection();
+                sessionHelper.closeSession();
             }
         }
     }

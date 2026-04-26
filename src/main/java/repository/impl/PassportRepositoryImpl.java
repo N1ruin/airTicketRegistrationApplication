@@ -5,7 +5,7 @@ import exception.RepositoryException;
 import mapper.PassportResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import repository.ConnectionHelper;
+import repository.SessionHelper;
 import repository.PassportRepository;
 
 import java.sql.SQLException;
@@ -14,10 +14,10 @@ import java.util.Optional;
 
 public class PassportRepositoryImpl implements PassportRepository {
     public static final Logger log = LogManager.getLogger(PassportRepositoryImpl.class);
-    private final ConnectionHelper connectionHelper;
+    private final SessionHelper connectionHelper;
     private final PassportResultSetMapper passportResultSetMapper;
 
-    public PassportRepositoryImpl(ConnectionHelper connectionHelper, PassportResultSetMapper passportResultSetMapper) {
+    public PassportRepositoryImpl(SessionHelper connectionHelper, PassportResultSetMapper passportResultSetMapper) {
         this.connectionHelper = connectionHelper;
         this.passportResultSetMapper = passportResultSetMapper;
     }
@@ -31,7 +31,7 @@ public class PassportRepositoryImpl implements PassportRepository {
                 RETURNING id;
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
 
             preparedStatement.setString(1, passport.getSeries());
@@ -65,7 +65,7 @@ public class PassportRepositoryImpl implements PassportRepository {
                 WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -92,7 +92,7 @@ public class PassportRepositoryImpl implements PassportRepository {
                 WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, passport.getNumber());
             preparedStatement.setString(2, passport.getSeries());
@@ -114,7 +114,7 @@ public class PassportRepositoryImpl implements PassportRepository {
     public void deleteById(Long id) {
         var sql = "DELETE FROM tickets_application.passport WHERE id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -134,7 +134,7 @@ public class PassportRepositoryImpl implements PassportRepository {
                 WHERE passport_series = ? AND passport_number = ? AND citizenship = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, series);
             preparedStatement.setString(2, number);

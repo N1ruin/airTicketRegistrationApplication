@@ -8,6 +8,7 @@ public class AttributeName {
     public static final String REQUEST_PARAMETER_VALIDATION_SERVICE = "requestParameterValidationService";
     public static final String PERMISSION_CHECKER = "roleExtractor";
     public static final String SESSION_ATTRIBUTE_EXTRACTOR = "sessionAttributeExtractor";
+    public static final String SESSION_FACTORY = "sessionFactory";
 
     public static final String USER_SERVICE = "userService";
     public static final String USER_VALIDATION_SERVICE = "userValidationService";

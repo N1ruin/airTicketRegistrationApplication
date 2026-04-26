@@ -18,12 +18,15 @@ import converter.user.UserDtoConverter;
 import converter.user.UserSignUpRequestConverter;
 import converter.user.UserSignUpResponseConverter;
 import converter.user.UserUpdateResponseConverter;
+import domain.*;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import mapper.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import repository.ConnectionHelper;
+import org.hibernate.SessionFactory;
+import org.hibernate.jpa.HibernatePersistenceConfiguration;
+import repository.SessionHelper;
 import repository.TransactionHelper;
 import repository.impl.*;
 import sequrity.PasswordEncoder;
@@ -56,24 +59,26 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(DATA_SOURCE, dataSource);
         var migrationService = new MigrationService(dataSource);
         context.setAttribute(MIGRATION_SERVICE, migrationService);
+        var sessionFactory = initSessionFactory(dataSource);
+        context.setAttribute(SESSION_FACTORY, sessionFactory);
         var passwordEncoder = new PasswordEncoder();
         var objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         var httpHelper = new HttpHelper(objectMapper);
         context.setAttribute(HTTP_HELPER, httpHelper);
-        var connectionHelper = new ConnectionHelper(dataSource);
+        var sessionHelper = new SessionHelper(sessionFactory);
         var requestParameterExtractor = new RequestParameterExtractor();
         context.setAttribute(REQUEST_PARAMETER_EXTRACTOR, requestParameterExtractor);
         var requestParameterValidationService = new RequestParameterValidationService();
         context.setAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE, requestParameterValidationService);
-        var transactionHelper = new TransactionHelper(connectionHelper);
+        var transactionHelper = new TransactionHelper(sessionHelper);
         var sessionAttributeExtractor = new SessionAttributeExtractor();
         context.setAttribute(SESSION_ATTRIBUTE_EXTRACTOR, sessionAttributeExtractor);
         var permissionChecker = new PermissionChecker(sessionAttributeExtractor);
         context.setAttribute(PERMISSION_CHECKER, permissionChecker);
 
         var userResultSetMapper = new UserResultSetMapper();
-        var userRepository = new UserRepositoryImpl(connectionHelper, userResultSetMapper);
+        var userRepository = new UserRepositoryImpl(sessionHelper, userResultSetMapper);
         var userSignUpRequestConverter = new UserSignUpRequestConverter(passwordEncoder);
         context.setAttribute(USER_SIGN_UP_REQUEST_CONVERTER, userSignUpRequestConverter);
         var userSignUpResponseConverter = new UserSignUpResponseConverter();
@@ -94,7 +99,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(ADDRESS_CONVERTER, addressConverter);
         var addressDtoConverter = new AddressDtoConverter();
         context.setAttribute(ADDRESS_DTO_CONVERTER, addressDtoConverter);
-        var addressRepository = new AddressRepositoryImpl(connectionHelper, addressResultSetMapper);
+        var addressRepository = new AddressRepositoryImpl(sessionHelper, addressResultSetMapper);
         var addressService = new AddressService(transactionHelper, addressRepository);
         context.setAttribute(ADDRESS_SERVICE, addressService);
 
@@ -102,7 +107,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
                 new AirportValidationService(addressValidationService, requestParameterValidationService);
         context.setAttribute(AIRPORT_VALIDATION_SERVICE, airportValidationService);
         var airportResultSetMapper = new AirportResultSetMapper(addressResultSetMapper);
-        var airportRepository = new AirportRepositoryImpl(connectionHelper, airportResultSetMapper);
+        var airportRepository = new AirportRepositoryImpl(sessionHelper, airportResultSetMapper);
         var airportConverter = new AirportConverter(addressConverter);
         context.setAttribute(AIRPORT_CONVERTER, airportConverter);
         var createAirportRequestConverter = new CreateAirportRequestConverter(addressDtoConverter);
@@ -125,12 +130,12 @@ public class InitAttributeServletContextListener implements ServletContextListen
         var passportValidationService = new PassportValidationService();
         context.setAttribute(PASSPORT_VALIDATION_SERVICE, passportValidationService);
         var passportResultSetMapper = new PassportResultSetMapper();
-        var passportRepository = new PassportRepositoryImpl(connectionHelper, passportResultSetMapper);
+        var passportRepository = new PassportRepositoryImpl(sessionHelper, passportResultSetMapper);
         var passportService = new PassportService(transactionHelper, passportRepository);
         context.setAttribute(PASSPORT_SERVICE, passportService);
 
         var passengerResultSetMapper = new PassengerResultSetMapper(passportResultSetMapper);
-        var passengerRepository = new PassengerRepositoryImpl(connectionHelper, passengerResultSetMapper);
+        var passengerRepository = new PassengerRepositoryImpl(sessionHelper, passengerResultSetMapper);
         var passengerService = new PassengerService(passengerRepository, airportService, passportService, transactionHelper);
         context.setAttribute(PASSENGER_SERVICE, passengerService);
         var passengerValidationService =
@@ -161,13 +166,13 @@ public class InitAttributeServletContextListener implements ServletContextListen
         var updateFlightResponseConverter = new UpdateFlightResponseConverter(airportConverter);
         context.setAttribute(UPDATE_FLIGHT_RESPONSE_CONVERTER, updateFlightResponseConverter);
         var flightResultSetMapper = new FlightResultSetMapper();
-        var flightRepository = new FlightRepositoryImpl(flightResultSetMapper, connectionHelper);
+        var flightRepository = new FlightRepositoryImpl(flightResultSetMapper, sessionHelper);
         var flightService = new FlightService(flightRepository, transactionHelper, airportService);
         context.setAttribute(FLIGHT_SERVICE, flightService);
         var flightConverter = new FlightDtoConverter(airportDtoConverter);
 
         var ticketResultSetMapper = new TicketResultSetMapper(passportResultSetMapper);
-        var ticketRepository = new TicketRepositoryImpl(connectionHelper, ticketResultSetMapper);
+        var ticketRepository = new TicketRepositoryImpl(sessionHelper, ticketResultSetMapper);
         var ticketService = new TicketService(transactionHelper, ticketRepository, passengerService, airportService,
                 flightService);
         context.setAttribute(TICKET_SERVICE, ticketService);
@@ -209,5 +214,19 @@ public class InitAttributeServletContextListener implements ServletContextListen
         log.info("HikariCP configuration loading finish");
 
         return new HikariDataSource(config);
+    }
+
+    private SessionFactory initSessionFactory(DataSource dataSource) {
+        return new HibernatePersistenceConfiguration("tickets")
+                .managedClass(Address.class)
+                .managedClass(Airport.class)
+                .managedClass(Flight.class)
+                .managedClass(Passenger.class)
+                .managedClass(Passport.class)
+                .managedClass(Ticket.class)
+                .managedClass(User.class)
+                .property("jakarta.persistence.nonJtaDataSource", dataSource)
+                .showSql(true, true, true)
+                .createEntityManagerFactory();
     }
 }

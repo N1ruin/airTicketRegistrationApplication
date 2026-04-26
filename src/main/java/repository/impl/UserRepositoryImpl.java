@@ -5,7 +5,7 @@ import exception.RepositoryException;
 import mapper.UserResultSetMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import repository.ConnectionHelper;
+import repository.SessionHelper;
 import repository.UserRepository;
 
 import java.sql.*;
@@ -16,10 +16,10 @@ import java.util.Optional;
 public class UserRepositoryImpl implements UserRepository {
     private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
     private static final String SELECT_QUERY = "SELECT * FROM tickets_application.users";
-    private final ConnectionHelper connectionHelper;
+    private final SessionHelper connectionHelper;
     private final UserResultSetMapper resultSetMapper;
 
-    public UserRepositoryImpl(ConnectionHelper connectionHelper, UserResultSetMapper resultSetMapper) {
+    public UserRepositoryImpl(SessionHelper connectionHelper, UserResultSetMapper resultSetMapper) {
         this.connectionHelper = connectionHelper;
         this.resultSetMapper = resultSetMapper;
     }
@@ -28,7 +28,7 @@ public class UserRepositoryImpl implements UserRepository {
     public Optional<User> findByEmail(String email) {
         var sql = SELECT_QUERY + " WHERE email = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, email);
             var resultSet = preparedStatement.executeQuery();
@@ -49,7 +49,7 @@ public class UserRepositoryImpl implements UserRepository {
                 RETURNING id;
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(user, preparedStatement);
 
@@ -68,7 +68,7 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public Optional<User> findById(Long id) {
         var sql = SELECT_QUERY + " WHERE id = ?";
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -83,7 +83,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public List<User> findAll() {
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(SELECT_QUERY)) {
             var resultSet = preparedStatement.executeQuery();
 
@@ -109,7 +109,7 @@ public class UserRepositoryImpl implements UserRepository {
                 WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(user, preparedStatement);
             if (user.getLastLogin() != null) {
@@ -132,7 +132,7 @@ public class UserRepositoryImpl implements UserRepository {
     public void deleteById(Long id) {
         var sql = "DELETE FROM tickets_application.users WHERE id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 

@@ -7,7 +7,7 @@ import mapper.AirportResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import repository.AirportRepository;
-import repository.ConnectionHelper;
+import repository.SessionHelper;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -28,10 +28,10 @@ public class AirportRepositoryImpl implements AirportRepository {
             FROM tickets_application.airport AS airport
             JOIN tickets_application.address AS address ON airport.address_id = address.id
             """;
-    private final ConnectionHelper connectionHelper;
+    private final SessionHelper connectionHelper;
     private final AirportResultSetMapper resultSetMapper;
 
-    public AirportRepositoryImpl(ConnectionHelper connectionHelper, AirportResultSetMapper resultSetMapper) {
+    public AirportRepositoryImpl(SessionHelper connectionHelper, AirportResultSetMapper resultSetMapper) {
         this.connectionHelper = connectionHelper;
         this.resultSetMapper = resultSetMapper;
     }
@@ -44,7 +44,7 @@ public class AirportRepositoryImpl implements AirportRepository {
                 RETURNING id;
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
 
             preparedStatement.setString(1, airport.getCode());
@@ -69,7 +69,7 @@ public class AirportRepositoryImpl implements AirportRepository {
     public Optional<Airport> findById(Long id) {
         var sql = SELECT_QUERY + " WHERE airport.id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -84,7 +84,7 @@ public class AirportRepositoryImpl implements AirportRepository {
 
     @Override
     public List<Airport> findAll() {
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(SELECT_QUERY)) {
             var resultSet = preparedStatement.executeQuery();
 
@@ -101,7 +101,7 @@ public class AirportRepositoryImpl implements AirportRepository {
                 UPDATE tickets_application.airport SET code = ?, name = ?, address_id = ?, status = ? WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, airport.getCode());
             preparedStatement.setString(2, airport.getName());
@@ -124,7 +124,7 @@ public class AirportRepositoryImpl implements AirportRepository {
                 UPDATE tickets_application.airport SET status = ? WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, AirportStatus.CLOSED.name());
             preparedStatement.setLong(2, id);
@@ -139,7 +139,7 @@ public class AirportRepositoryImpl implements AirportRepository {
     @Override
     public Optional<Airport> findByCode(String code) {
         var sql = SELECT_QUERY + " WHERE airport.code = ?";
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, code);
 

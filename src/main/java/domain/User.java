@@ -1,16 +1,31 @@
 package domain;
 
+import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "users", schema = "tickets_application")
 public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(length = 100, unique = true, nullable = false)
     private String email;
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+    @Column(name = "first_name", length = 100)
     private String firstName;
+    @Column(name = "last_name", length = 100)
     private String lastName;
+    @Column(name = "father_name", length = 100)
     private String fatherName;
+    @Column(name = "user_role")
+    @Enumerated(EnumType.STRING)
     private Role role;
+    @Column(name = "last_login")
     private LocalDateTime lastLogin;
+    @Column(name = "is_blocked")
     private boolean isBlocked;
 
     public Long getId() {

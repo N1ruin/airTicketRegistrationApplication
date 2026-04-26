@@ -1,10 +1,21 @@
 package domain;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "airport", schema = "tickets_application")
 public class Airport {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(length = 10, nullable = false, unique = true)
     private String code;
+    @Column(length = 100, nullable = false)
     private String name;
+    @OneToOne(optional = false, cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "address_id", nullable = false)
     private Address address;
+    @Column(name = "status", length = 20, nullable = false)
     private AirportStatus airportStatus;
 
     public Long getId() {

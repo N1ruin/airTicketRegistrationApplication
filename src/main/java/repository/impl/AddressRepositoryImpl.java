@@ -6,7 +6,7 @@ import mapper.AddressResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import repository.AddressRepository;
-import repository.ConnectionHelper;
+import repository.SessionHelper;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -15,10 +15,10 @@ import java.util.Optional;
 
 public class AddressRepositoryImpl implements AddressRepository {
     public static final Logger log = LogManager.getLogger(AddressRepositoryImpl.class);
-    private final ConnectionHelper connectionHelper;
+    private final SessionHelper connectionHelper;
     private final AddressResultSetMapper addressResultSetMapper;
 
-    public AddressRepositoryImpl(ConnectionHelper connectionHelper, AddressResultSetMapper addressResultSetMapper) {
+    public AddressRepositoryImpl(SessionHelper connectionHelper, AddressResultSetMapper addressResultSetMapper) {
         this.connectionHelper = connectionHelper;
         this.addressResultSetMapper = addressResultSetMapper;
     }
@@ -31,7 +31,7 @@ public class AddressRepositoryImpl implements AddressRepository {
                 RETURNING id;
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(preparedStatement, address);
 
@@ -63,7 +63,7 @@ public class AddressRepositoryImpl implements AddressRepository {
                 UPDATE tickets_application.address SET country = ?, city = ?, street = ?, house_number = ? WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(preparedStatement, address);
             preparedStatement.setLong(5, address.getId());
@@ -92,7 +92,7 @@ public class AddressRepositoryImpl implements AddressRepository {
                     AND address.house_number = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(preparedStatement, address);
 
@@ -117,7 +117,7 @@ public class AddressRepositoryImpl implements AddressRepository {
                 JOIN tickets_application.airport AS airport ON address.id = airport.address_id
                 WHERE airport.id = ?;
                 """;
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHelper.getSession();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, airportId);
 
