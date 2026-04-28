@@ -1,12 +1,14 @@
 package repository.impl;
 
+import domain.Airport;
 import domain.Passenger;
+import domain.PassengerFavoriteAirport;
+import domain.PassengerFavoriteAirportId;
 import exception.RepositoryException;
-import mapper.PassengerResultSetMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import repository.SessionHelper;
 import repository.PassengerRepository;
+import repository.SessionHelper;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -15,219 +17,149 @@ import java.util.Optional;
 
 public class PassengerRepositoryImpl implements PassengerRepository {
     private static final Logger log = LogManager.getLogger(PassengerRepositoryImpl.class);
-    private static final String SELECT_QUERY = """
-            SELECT passenger.id AS passenger_id,
-                   passenger.first_name AS first_name,
-                   passenger.last_name AS last_name,
-                   passenger.father_name AS father_name,
-                   passenger.male AS male,
-                   passenger.birth_date AS birth_date,
-                   passenger.user_id AS user_id,
-                   passport.id AS passport_id,
-                   passport.passport_series AS passport_series,
-                   passport.passport_number AS passport_number,
-                   passport.citizenship AS passport_citizenship,
-                   passport.passport_issue_date AS passport_issue_date,
-                   passport.passport_expired_date AS passport_expired_date
-            FROM tickets_application.passenger AS passenger
-            JOIN tickets_application.passport AS passport ON passenger.passport_id = passport.id
-            """;
-    private final SessionHelper connectionHelper;
+    private final SessionHelper sessionHelper;
 
-    public PassengerRepositoryImpl(SessionHelper connectionHelper) {
-        this.connectionHelper = connectionHelper;
+    public PassengerRepositoryImpl(SessionHelper sessionHelper) {
+        this.sessionHelper = sessionHelper;
     }
 
     @Override
     public Passenger save(Passenger passenger) {
-        var sql = """
-                INSERT INTO tickets_application.passenger(first_name, last_name, father_name, male, birth_date, passport_id, user_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                RETURNING id;
-                """;
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            fillPreparedStatement(passenger, preparedStatement);
-            preparedStatement.setLong(6, passenger.getPassport().getId());
-            preparedStatement.setLong(7, passenger.getUserId());
+        session.persist(passenger);
 
-            var resultSet = preparedStatement.executeQuery();
-
-            resultSet.next();
-            passenger.setId(resultSet.getLong(1));
-
-            return passenger;
-        } catch (SQLException e) {
-            log.error("Passenger save in database error.", e);
-            throw new RepositoryException("Passenger save error");
-        }
+        return passenger;
     }
 
     @Override
     public Optional<Passenger> findById(Long id) {
-        var sql = SELECT_QUERY + " WHERE passenger.id = ?";
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, id);
+        var hql = """
+                FROM Passenger passenger
+                JOIN FETCH passenger.passport
+                JOIN FETCH passenger.user
+                JOIN FETCH passenger.favoriteAirports
+                WHERE passenger.id = ?1
+                """;
 
-            var resultSet = preparedStatement.executeQuery();
-
-            return resultSetMapper.map(resultSet);
-        } catch (SQLException e) {
-            log.error("Passenger find by id {} error.", id, e);
-            throw new RepositoryException("Passenger find by id error");
-        }
+        return session.createQuery(hql, Passenger.class)
+                .setParameter(1, id)
+                .uniqueResultOptional();
     }
 
     @Override
     public List<Passenger> findAllByUserId(Long userId) {
-        var sql = SELECT_QUERY + " WHERE user_id = ?";
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, userId);
+        var hql = """
+                 FROM Passenger passenger
+                JOIN FETCH passenger.passport
+                JOIN FETCH passenger.user
+                JOIN FETCH passenger.favoriteAirports
+                WHERE passenger.user.id = ?1
+                """;
 
-            var resultSet = preparedStatement.executeQuery();
-
-            return resultSetMapper.mapList(resultSet);
-        } catch (SQLException e) {
-            log.error("Find all passengers by user id {} error.", userId, e);
-            throw new RepositoryException("Passenger find all error");
-        }
+        return session.createQuery(hql, Passenger.class)
+                .setParameter(1, userId)
+                .getResultList();
     }
 
     @Override
     public List<Passenger> findAll() {
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(SELECT_QUERY)) {
-            var resultSet = preparedStatement.executeQuery();
+        var session = sessionHelper.getSession();
 
-            return resultSetMapper.mapList(resultSet);
-        } catch (SQLException e) {
-            log.error("Passenger find all error.", e);
-            throw new RepositoryException("Passenger find all error");
-        }
+        var hql = """
+                  FROM Passenger passenger
+                JOIN FETCH passenger.passport
+                JOIN FETCH passenger.user
+                JOIN FETCH passenger.favoriteAirports
+                """;
+        return session.createQuery(hql, Passenger.class)
+                .getResultList();
     }
 
     @Override
     public Passenger update(Passenger passenger) {
-        var sql = """
-                UPDATE tickets_application.passenger
-                SET first_name = ?, last_name = ?, father_name = ?, male = ?, birth_date = ?, passport_id = ?
-                WHERE id = ?
-                """;
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            fillPreparedStatement(passenger, preparedStatement);
-            preparedStatement.setLong(6, passenger.getPassport().getId());
-            preparedStatement.setLong(7, passenger.getId());
-
-            preparedStatement.executeUpdate();
-
-            return passenger;
-        } catch (SQLException e) {
-            log.error("Passenger with id {} update error.", passenger.getId(), e);
-            throw new RepositoryException("Passenger update error");
-        }
+        return session.merge(passenger);
     }
 
     @Override
     public void deleteById(Long id) {
-        var sql = """
-                DELETE FROM tickets_application.passenger WHERE id = ?
-                """;
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, id);
+        var passenger = session.getReference(Passenger.class, id);
 
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            log.error("Passenger with id {} delete error.", id, e);
-            throw new RepositoryException("Passenger delete error");
-        }
+        session.remove(passenger);
     }
 
     @Override
     public void updateFavoriteAirports(Long passengerId, Long airportId) {
-        var updateSql = """
-                UPDATE tickets_application.passenger_favorite_airports
-                SET flights_count = flights_count + 1
-                WHERE passenger_id = ? AND airport_id = ?
-                """;
-        var insertSql = """
-                INSERT INTO tickets_application.passenger_favorite_airports (passenger_id, airport_id, flights_count)
-                VALUES (?, ?, 1)
+        var session = sessionHelper.getSession();
+
+        var hql = """
+                FROM PassengerFavoriteAirport pfa
+                WHERE pfa.passenger.id = ?1
+                AND pfa.airport.id = ?2
                 """;
 
-        var connection = connectionHelper.getSession();
-        try {
-            try (var preparedStatement = connection.prepareStatement(updateSql)) {
-                preparedStatement.setLong(1, passengerId);
-                preparedStatement.setLong(2, airportId);
+        var passenger = session.getReference(Passenger.class, passengerId);
+        var airport = session.getReference(Airport.class, airportId);
 
-                int rowsUpdated = preparedStatement.executeUpdate();
+        var favoriteAirport = session.createQuery(hql, PassengerFavoriteAirport.class)
+                .setParameter(1, passengerId)
+                .setParameter(2, airportId)
+                .uniqueResultOptional()
+                .orElseGet(() -> {
+                    var newFavorite = new PassengerFavoriteAirport();
+                    newFavorite.setPassenger(passenger);
+                    newFavorite.setAirport(airport);
+                    newFavorite.setFlightCounts(0);
+                    session.persist(newFavorite);
+                    return newFavorite;
+                });
 
-                if (rowsUpdated == 0) {
-                    try (var psInsert = connection.prepareStatement(insertSql)) {
-                        psInsert.setLong(1, passengerId);
-                        psInsert.setLong(2, airportId);
-
-                        psInsert.executeUpdate();
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            log.error("Error incrementing favorite airport", e);
-            throw new RepositoryException("Passenger update favorite airports error");
-        }
+        favoriteAirport.setFlightCounts(favoriteAirport.getFlightCounts() + 1);
     }
 
     @Override
     public void refundFavoriteAirport(Long passengerId, Long airportId) {
-        var sql = """
-                UPDATE tickets_application.passenger_favorite_airports
-                SET flights_count = flights_count - 1
-                WHERE passenger_id = ? AND airport_id = ? AND flights_count > 0
+        var session = sessionHelper.getSession();
+
+        var hql = """
+                FROM PassengerFavoriteAirport pfa
+                            WHERE pfa.passenger.id = ?1
+                            AND pfa.airport.id = ?2
                 """;
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, passengerId);
-            preparedStatement.setLong(2, airportId);
+        var favoriteAirport = session.createQuery(hql, PassengerFavoriteAirport.class)
+                .setParameter(1, passengerId)
+                .setParameter(2, airportId)
+                .uniqueResultOptional()
+                .orElseThrow(() -> new RepositoryException("Favorite airport not found for passenger %d and airport %d"
+                        .formatted(passengerId, airportId)
+                ));
 
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            log.error("Error decrementing favorite airport", e);
-            throw new RepositoryException("Refund favorite airport error");
+        if (favoriteAirport.getFlightCounts() > 0) {
+            favoriteAirport.setFlightCounts(favoriteAirport.getFlightCounts() - 1);
         }
     }
 
     @Override
     public Optional<Passenger> findByPassportId(Long passportId) {
-        var sql = SELECT_QUERY + " WHERE passport.id = ?";
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, passportId);
+        var hql = """
+                FROM Passenger passenger
+                JOIN FETCH passenger.passport
+                WHERE passenger.passport.id = ?1
+                """;
 
-            var resultSet = preparedStatement.executeQuery();
-
-            return resultSetMapper.map(resultSet);
-        } catch (SQLException e) {
-            log.error("Error finding passenger by passport_id {}", passportId, e);
-            throw new RepositoryException("Passenger find by passport error");
-        }
-    }
-
-    private void fillPreparedStatement(Passenger passenger, PreparedStatement preparedStatement) throws SQLException {
-        preparedStatement.setString(1, passenger.getFirstName());
-        preparedStatement.setString(2, passenger.getLastName());
-        preparedStatement.setString(3, passenger.getFatherName());
-        preparedStatement.setBoolean(4, passenger.isMale());
-        preparedStatement.setObject(5, passenger.getBirthDate());
+        return session.createQuery(hql, Passenger.class)
+                .setParameter(1, passportId)
+                .uniqueResultOptional();
     }
 }

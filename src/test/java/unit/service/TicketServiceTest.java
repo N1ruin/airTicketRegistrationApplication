@@ -56,7 +56,7 @@ class TicketServiceTest {
         Long userId = 1L;
         var passenger = new Passenger();
         passenger.setId(10L);
-        passenger.setUserId(userId);
+        passenger.setUser(userId);
 
         var flight = new Flight();
         flight.setId(20L);
@@ -92,7 +92,7 @@ class TicketServiceTest {
         Long userId = 1L;
         var passenger = new Passenger();
         passenger.setId(10L);
-        passenger.setUserId(userId);
+        passenger.setUser(userId);
         var flight = new Flight();
         flight.setId(20L);
         flight.setFreeSeats(10);
@@ -116,7 +116,7 @@ class TicketServiceTest {
         Long otherUserId = 2L;
         var passenger = new Passenger();
         passenger.setId(10L);
-        passenger.setUserId(otherUserId);
+        passenger.setUser(otherUserId);
         var flight = new Flight();
         flight.setId(20L);
         var ticket = new Ticket();
@@ -133,7 +133,7 @@ class TicketServiceTest {
         Long userId = 1L;
         var passenger = new Passenger();
         passenger.setId(10L);
-        passenger.setUserId(userId);
+        passenger.setUser(userId);
         var flight = new Flight();
         flight.setId(20L);
         flight.setFreeSeats(1);
@@ -159,7 +159,7 @@ class TicketServiceTest {
         Long userId = 1L;
         var passenger = new Passenger();
         passenger.setId(10L);
-        passenger.setUserId(userId);
+        passenger.setUser(userId);
         var flight = new Flight();
         flight.setId(20L);
         flight.setFreeSeats(10);
@@ -192,7 +192,7 @@ class TicketServiceTest {
 
         var passenger = new Passenger();
         passenger.setId(10L);
-        passenger.setUserId(userId);
+        passenger.setUser(userId);
 
         var flight = new Flight();
         flight.setFreeSeats(10);
@@ -219,7 +219,7 @@ class TicketServiceTest {
     void refundThrowsValidationExceptionWhenUserMismatch() {
         Long currentUserId = 1L;
         var passenger = new Passenger();
-        passenger.setUserId(99L);
+        passenger.setUser(99L);
         var ticket = new Ticket();
         ticket.setPassenger(passenger);
 

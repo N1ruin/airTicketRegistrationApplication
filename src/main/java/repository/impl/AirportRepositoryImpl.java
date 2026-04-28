@@ -33,14 +33,16 @@ public class AirportRepositoryImpl implements AirportRepository {
     public Optional<Airport> findById(Long id) {
         var session = sessionHelper.getSession();
 
-        var airport = session.find(Airport.class, id);
+        var hql = "FROM Airport airport JOIN FETCH airport.address WHERE airport.id = ?1";
 
-        return Optional.ofNullable(airport);
+        return session.createQuery(hql, Airport.class)
+                .setParameter(1, id)
+                .uniqueResultOptional();
     }
 
     @Override
     public List<Airport> findAll() {
-        var hql = "FROM Airport";
+        var hql = "FROM Airport airport JOIN FETCH airport.address";
 
         var session = sessionHelper.getSession();
 

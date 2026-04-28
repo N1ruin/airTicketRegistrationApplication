@@ -3,19 +3,20 @@ package domain;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "airport", schema = "tickets_application")
+@Table(name = "airport")
 public class Airport {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(length = 10, nullable = false, unique = true)
+    @Column
     private String code;
-    @Column(length = 100, nullable = false)
+    @Column
     private String name;
-    @OneToOne(optional = false, cascade = CascadeType.REMOVE)
-    @JoinColumn(name = "address_id", nullable = false)
+    @OneToOne(optional = false, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinColumn(name = "address_id")
     private Address address;
-    @Column(name = "status", length = 20, nullable = false)
+    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     private AirportStatus airportStatus;
 
     public Long getId() {
@@ -56,5 +57,12 @@ public class Airport {
 
     public void setAirportStatus(AirportStatus airportStatus) {
         this.airportStatus = airportStatus;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (airportStatus == null) {
+            airportStatus = AirportStatus.WORKS;
+        }
     }
 }

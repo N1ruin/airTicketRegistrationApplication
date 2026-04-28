@@ -1,13 +1,9 @@
 package unit.converter.passenger;
 
-import converter.passenger.CreatePassengerRequestConverter;
 import converter.passenger.CreatePassengerResponseConverter;
-import converter.passsport.PassportConverter;
 import converter.passsport.PassportDtoConverter;
 import domain.Passenger;
 import domain.Passport;
-import dto.passenger.CreatePassengerRequest;
-import dto.passenger.CreatePassengerResponse;
 import dto.passport.PassportDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class CreatePassengerResponseConverterTest {
@@ -43,7 +38,7 @@ class CreatePassengerResponseConverterTest {
         passenger.setMale(true);
         passenger.setBirthDate(birthDate);
         passenger.setPassport(passportMock);
-        passenger.setUserId(1L);
+        passenger.setUser(1L);
         when(passportDtoConverter.convert(passportMock)).thenReturn(passportDtoMock);
 
         var result = converter.convert(passenger);

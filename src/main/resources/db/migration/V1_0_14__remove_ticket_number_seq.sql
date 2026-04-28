@@ -1,0 +1,1 @@
+DROP SEQUENCE IF EXISTS tickets_application.ticket_number_sequence;

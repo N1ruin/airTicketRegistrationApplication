@@ -5,29 +5,34 @@ import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
 @Entity
-@Table(name = "passenger", schema = "tickets_application")
+@Table(name = "passenger")
 public class Passenger {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "first_name", length = 100, nullable = false)
+    @Column(name = "first_name")
     private String firstName;
-    @Column(name = "last_name", length = 100, nullable = false)
+    @Column(name = "last_name")
     private String lastName;
-    @Column(name = "father_name", length = 100)
+    @Column(name = "father_name")
     private String fatherName;
-    @Column(nullable = false)
+    @Column
     private boolean male;
-    @Column(name = "birth_date", nullable = false)
+    @Column(name = "birth_date")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate birthDate;
-    @OneToOne(optional = false, cascade = CascadeType.REMOVE)
+    @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "passport_id")
     private Passport passport;
-    private List<Airport> favoriteAirports = new ArrayList<>();
-    private Long userId;
+    @OneToMany(mappedBy = "passenger", orphanRemoval = true)
+    private List<PassengerFavoriteAirport> favoriteAirports = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     public Long getId() {
         return id;
@@ -85,11 +90,11 @@ public class Passenger {
         this.passport = passport;
     }
 
-    public Long getUserId() {
-        return userId;
+    public User getUser() {
+        return user;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setUser(User user) {
+        this.user = user;
     }
 }

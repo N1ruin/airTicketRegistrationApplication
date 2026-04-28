@@ -20,6 +20,6 @@ public class CreatePassengerResponseConverter implements Converter<Passenger, Cr
 
         return new CreatePassengerResponse(passenger.getId(), passenger.getFirstName(), passenger.getLastName(),
                 passenger.getFatherName(), passenger.isMale(), passenger.getBirthDate(), passportDto,
-                passenger.getUserId());
+                passenger.getUser());
     }
 }

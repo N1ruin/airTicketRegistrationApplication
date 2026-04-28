@@ -6,18 +6,14 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity()
-@Table(name = "passport",
-        schema = "tickets_application",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "passport_unique_series_number",
-                        columnNames = {"passport_series", "passport_number"})})
+@Table(name = "passport")
 public class Passport {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "passport_series", nullable = false)
+    @Column(name = "passport_series")
     private String series;
-    @Column(name = "passport_number", nullable = false)
+    @Column(name = "passport_number")
     private String number;
     @Column
     private String citizenship;
@@ -25,7 +21,7 @@ public class Passport {
     @Column(name = "passport_issue_date")
     private LocalDate issueDate;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    @Column(name = "passports_expired_date")
+    @Column(name = "passport_expired_date")
     private LocalDate expiredDate;
 
     public Long getId() {

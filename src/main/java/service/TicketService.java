@@ -8,7 +8,6 @@ import exception.ValidationException;
 import repository.TicketRepository;
 import repository.TransactionHelper;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public class TicketService {
@@ -58,7 +57,7 @@ public class TicketService {
             var passengerId = ticket.getPassenger().getId();
 
             var passenger = passengerService.findById(passengerId);
-            if (!passenger.getUserId().equals(currentUserId)) {
+            if (!passenger.getUser().getId().equals(currentUserId)) {
                 throw new ValidationException("You can only purchase tickets for your own passengers");
             }
             ticketRepository.findByFlightIdAndPassengerId(flightId, passengerId)
@@ -85,7 +84,6 @@ public class TicketService {
             ticket.setTicketStatus(TicketStatus.ACTIVE);
 
             passengerService.updateFavoriteAirports(passengerId, ticket.getFlight().getDepartureAirport().getCode());
-            ticket.setPurchaseDate(LocalDateTime.now());
             return ticketRepository.save(ticket);
         });
     }
@@ -105,7 +103,7 @@ public class TicketService {
             var ticket = ticketRepository.findById(id)
                     .orElseThrow(() -> new EntityNotFoundException("Ticket with id %d not found".formatted(id)));
 
-            if (!ticket.getPassenger().getUserId().equals(userId)) {
+            if (!ticket.getPassenger().getUser().getId().equals(userId)) {
                 throw new ValidationException("Ticket is not linked to the current user");
             }
 

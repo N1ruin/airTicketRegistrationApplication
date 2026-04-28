@@ -170,7 +170,7 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User with id %d not found".formatted(id)));
     }
 
-    private User findByIdTransactional(long id) {
+    private User findByIdTransactional(Long id) {
         return transactionHelper.executeInTransaction(() -> userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Passenger with id %d not found".formatted(id))));
     }

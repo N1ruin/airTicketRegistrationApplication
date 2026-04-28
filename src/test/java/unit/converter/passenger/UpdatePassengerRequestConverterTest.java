@@ -38,7 +38,7 @@ class UpdatePassengerRequestConverterTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        assertNull(result.getUserId());
+        assertNull(result.getUser());
         assertEquals("FirstName", result.getFirstName());
         assertEquals("LastName", result.getLastName());
         assertEquals("FatherName", result.getFatherName());

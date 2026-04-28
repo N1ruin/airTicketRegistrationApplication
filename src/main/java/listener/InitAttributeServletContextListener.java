@@ -25,6 +25,7 @@ import mapper.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.SessionFactory;
+import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.jpa.HibernatePersistenceConfiguration;
 import repository.SessionHelper;
 import repository.TransactionHelper;
@@ -219,6 +220,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
                 .managedClass(Ticket.class)
                 .managedClass(User.class)
                 .property("jakarta.persistence.nonJtaDataSource", dataSource)
+                .property(AvailableSettings.DEFAULT_SCHEMA, "tickets_application")
                 .showSql(true, true, true)
                 .createEntityManagerFactory();
     }

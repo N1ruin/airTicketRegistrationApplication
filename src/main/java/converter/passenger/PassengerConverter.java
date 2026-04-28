@@ -22,7 +22,7 @@ public class PassengerConverter implements Converter<PassengerDto, Passenger> {
         passenger.setFatherName(passengerDto.fatherName());
         passenger.setMale(passengerDto.male());
         passenger.setBirthDate(passengerDto.birthDate());
-        passenger.setUserId(passengerDto.id());
+        passenger.setUser(passengerDto.id());
 
         var passport = passportConverter.convert(passengerDto.passportDto());
         passenger.setPassport(passport);

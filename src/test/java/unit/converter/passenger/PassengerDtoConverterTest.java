@@ -36,7 +36,7 @@ class PassengerDtoConverterTest {
         passenger.setFatherName("FatherName");
         passenger.setMale(true);
         passenger.setBirthDate(birthDate);
-        passenger.setUserId(1L);
+        passenger.setUser(1L);
         passenger.setPassport(passportMock);
         when(passportDtoConverter.convert(passportMock)).thenReturn(passportDtoMock);
 

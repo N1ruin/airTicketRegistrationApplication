@@ -5,20 +5,20 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users", schema = "tickets_application")
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(length = 100, unique = true, nullable = false)
+    @Column
     private String email;
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
-    @Column(name = "first_name", length = 100)
+    @Column(name = "first_name")
     private String firstName;
-    @Column(name = "last_name", length = 100)
+    @Column(name = "last_name")
     private String lastName;
-    @Column(name = "father_name", length = 100)
+    @Column(name = "father_name")
     private String fatherName;
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)

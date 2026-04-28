@@ -56,11 +56,7 @@ public class AirportService {
                     airportRepository.update(existed);
 
                     return existed;
-                }).orElseGet(() -> {
-                    addressService.save(airport.getAddress());
-
-                    return airportRepository.save(airport);
-                }));
+                }).orElseGet(() -> airportRepository.save(airport)));
     }
 
     private List<Airport> findAllTransactional() {
@@ -78,11 +74,18 @@ public class AirportService {
                     .orElseThrow(() -> new EntityNotFoundException("Airport with id %d not found"
                             .formatted(airport.getId())));
 
-            var updatedAddress = addressService.update(airport.getAddress(), airport.getId());
-            airport.setAirportStatus(existed.getAirportStatus());
-            airport.setAddress(updatedAddress);
+            if (airport.getCode() != null) {
+                existed.setCode(airport.getCode());
+            }
+            if (airport.getName() != null) {
+                existed.setName(airport.getName());
+            }
+            if (airport.getAddress() != null) {
+                var updatedAddress = addressService.update(airport.getAddress(), airport.getId());
+                existed.setAddress(updatedAddress);
+            }
 
-            return airportRepository.update(airport);
+            return airportRepository.update(existed);
         });
     }
 

@@ -104,7 +104,7 @@ public class PassengerService {
                     .orElseThrow(() -> new EntityNotFoundException("Passenger with id %d not found"
                             .formatted(passenger.getId())));
 
-            if (!existing.getUserId().equals(currentUserId)) {
+            if (!existing.getUser().getId().equals(currentUserId)) {
                 throw new ValidationException("You cannot update someone else's passenger");
             }
             var passportRequest = passenger.getPassport();
@@ -131,11 +131,10 @@ public class PassengerService {
             var passenger = passengerRepository.findById(id)
                     .orElseThrow(() -> new EntityNotFoundException("Passenger with id %d not found".formatted(id)));
 
-            if (!passenger.getUserId().equals(userId)) {
+            if (!passenger.getUser().getId().equals(userId)) {
                 throw new ValidationException("The passenger is not linked to the current user");
             }
 
-            passportService.deleteById(passenger.getPassport().getId());
             passengerRepository.deleteById(id);
         });
     }

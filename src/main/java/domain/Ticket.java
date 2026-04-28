@@ -1,18 +1,38 @@
 package domain;
 
+import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "ticket")
 public class Ticket {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "ticket_number")
     private Long ticketNumber;
+    @Column(name = "ticket_status")
+    @Enumerated(EnumType.STRING)
     private TicketStatus ticketStatus;
+    @Column(name = "service_class")
+    @Enumerated(EnumType.STRING)
     private ServiceClass serviceClass;
+    @Column(name = "seat_number")
     private Integer seatNumber;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "flight_id")
     private Flight flight;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "passenger_id")
     private Passenger passenger;
+    @Column(name = "purchase_date")
     private LocalDateTime purchaseDate;
+    @Column(name = "updated_date")
     private LocalDateTime updatedDate;
+    @Column(name = "baggage_weight")
     private Double baggageWeight;
+    @Column(name = "carry_on_weight")
     private Double carryOnBaggageWeight;
 
     public Long getId() {
@@ -67,10 +87,6 @@ public class Ticket {
         return purchaseDate;
     }
 
-    public void setPurchaseDate(LocalDateTime purchaseDate) {
-        this.purchaseDate = purchaseDate;
-    }
-
     public Double getBaggageWeight() {
         return baggageWeight;
     }
@@ -99,7 +115,13 @@ public class Ticket {
         return updatedDate;
     }
 
-    public void setUpdatedDate(LocalDateTime updatedDate) {
-        this.updatedDate = updatedDate;
+    @PrePersist
+    private void onPersist() {
+        this.purchaseDate = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    private void onUpdated() {
+        this.updatedDate = LocalDateTime.now();
     }
 }

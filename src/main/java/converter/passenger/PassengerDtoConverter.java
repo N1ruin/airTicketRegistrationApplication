@@ -21,7 +21,7 @@ public class PassengerDtoConverter implements Converter<Passenger, PassengerDto>
 
         return new PassengerDto(passenger.getId(), passenger.getFirstName(), passenger.getLastName(),
                 passenger.getFatherName(), passenger.isMale(), passenger.getBirthDate(), passportDto,
-                passenger.getUserId());
+                passenger.getUser());
     }
 
     @Override

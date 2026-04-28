@@ -43,7 +43,7 @@ class PassengerConverterTest {
         assertTrue(result.isMale());
         assertEquals(birthDate, result.getBirthDate());
         assertEquals(passportMock, result.getPassport());
-        assertEquals(1L, result.getUserId());
+        assertEquals(1L, result.getUser());
         verify(passportConverter).convert(passportDtoMock);
     }
 }

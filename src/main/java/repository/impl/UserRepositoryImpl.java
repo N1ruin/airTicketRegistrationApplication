@@ -1,153 +1,76 @@
 package repository.impl;
 
 import domain.User;
-import exception.RepositoryException;
-import mapper.UserResultSetMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import repository.SessionHelper;
 import repository.UserRepository;
 
 import java.sql.*;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 public class UserRepositoryImpl implements UserRepository {
     private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
-    private static final String SELECT_QUERY = "SELECT * FROM tickets_application.users";
-    private final SessionHelper connectionHelper;
+    private final SessionHelper sessionHelper;
 
-    public UserRepositoryImpl(SessionHelper connectionHelper) {
-        this.connectionHelper = connectionHelper;
+    public UserRepositoryImpl(SessionHelper sessionHelper) {
+        this.sessionHelper = sessionHelper;
     }
 
     @Override
     public Optional<User> findByEmail(String email) {
-        var sql = SELECT_QUERY + " WHERE email = ?";
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setString(1, email);
-            var resultSet = preparedStatement.executeQuery();
+        var hql = "FROM User user WHERE user.email = ?1";
 
-            return resultSetMapper.map(resultSet);
-        } catch (SQLException e) {
-            log.error("Select by email {} error", email, e);
-            throw new RuntimeException(e);
-        }
+        return session.createQuery(hql, User.class)
+                .setParameter(1, email)
+                .uniqueResultOptional();
     }
 
     @Override
     public User save(User user) {
-        var sql = """
-                INSERT INTO tickets_application.users (email, password_hash, first_name, last_name, father_name,
-                user_role, is_blocked)
-                VALUES(?, ?, ?, ?, ?, ?, ?)
-                RETURNING id;
-                """;
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            setStatementFields(user, preparedStatement);
+        session.persist(user);
 
-            var resultSet = preparedStatement.executeQuery();
-
-            resultSet.next();
-            user.setId(resultSet.getLong(1));
-
-            return user;
-        } catch (SQLException e) {
-            log.error("Save user with email {} error", user.getEmail(), e);
-            throw new RepositoryException(Arrays.toString(e.getStackTrace()));
-        }
+        return user;
     }
 
     @Override
     public Optional<User> findById(Long id) {
-        var sql = SELECT_QUERY + " WHERE id = ?";
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, id);
+        var session = sessionHelper.getSession();
 
-            var resultSet = preparedStatement.executeQuery();
+        var user = session.find(User.class, id);
 
-            return resultSetMapper.map(resultSet);
-        } catch (SQLException e) {
-            log.error("Select by id {} error", id, e);
-            throw new RepositoryException("User find by id error");
-        }
+        return Optional.ofNullable(user);
     }
 
     @Override
     public List<User> findAll() {
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(SELECT_QUERY)) {
-            var resultSet = preparedStatement.executeQuery();
+        var hql = "FROM User";
 
-            return resultSetMapper.mapList(resultSet);
-        } catch (SQLException e) {
-            log.error("Find all users error", e);
-            throw new RepositoryException("User find all error");
-        }
+        var session = sessionHelper.getSession();
+
+        return session.createQuery(hql, User.class).getResultList();
     }
 
     @Override
     public User update(User user) {
-        var sql = """
-                UPDATE tickets_application.users
-                SET email = ?,
-                    password_hash = ?,
-                    first_name = ?,
-                    last_name = ?,
-                    father_name = ?,
-                    user_role = ?,
-                    is_blocked = ?,
-                    last_login = ?
-                WHERE id = ?
-                """;
+        var session = sessionHelper.getSession();
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            setStatementFields(user, preparedStatement);
-            if (user.getLastLogin() != null) {
-                preparedStatement.setTimestamp(8, Timestamp.valueOf(user.getLastLogin()));
-            } else {
-                preparedStatement.setNull(8, Types.TIMESTAMP);
-            }
-            preparedStatement.setLong(9, user.getId());
-
-            preparedStatement.executeUpdate();
-
-            return user;
-        } catch (SQLException e) {
-            log.error("User with email {} update error", user.getEmail(), e);
-            throw new RepositoryException("User update error");
-        }
+        session.merge(user);
+        return user;
     }
 
     @Override
     public void deleteById(Long id) {
-        var sql = "DELETE FROM tickets_application.users WHERE id = ?";
+        var session = sessionHelper.getSession();
+        var user = session.find(User.class, id);
 
-        var connection = connectionHelper.getSession();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, id);
-
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            log.error("Delete user with id {} error", id, e);
-            throw new RepositoryException("User delete error");
+        if (user != null) {
+            session.remove(user);
         }
-    }
-
-    private void setStatementFields(User user, PreparedStatement preparedStatement) throws SQLException {
-        preparedStatement.setString(1, user.getEmail());
-        preparedStatement.setString(2, user.getPasswordHash());
-        preparedStatement.setString(3, user.getFirstName());
-        preparedStatement.setString(4, user.getLastName());
-        preparedStatement.setString(5, user.getFatherName());
-        preparedStatement.setString(6, user.getRole().name());
-        preparedStatement.setBoolean(7, user.isBlocked());
     }
 }

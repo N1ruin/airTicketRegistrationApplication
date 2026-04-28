@@ -139,7 +139,7 @@ class PassengerServiceTest {
 
         var existingPassenger = new Passenger();
         existingPassenger.setId(1L);
-        existingPassenger.setUserId(currentUserId);
+        existingPassenger.setUser(currentUserId);
 
         var existingPassport = new Passport();
         existingPassport.setId(99L);
@@ -178,7 +178,7 @@ class PassengerServiceTest {
         Long hackerId = 666L;
         var passenger = new Passenger();
         passenger.setId(1L);
-        passenger.setUserId(currentUserId);
+        passenger.setUser(currentUserId);
 
         when(passengerRepository.findById(1L)).thenReturn(Optional.of(passenger));
 
@@ -213,7 +213,7 @@ class PassengerServiceTest {
 
         var passenger = new Passenger();
         passenger.setId(passengerId);
-        passenger.setUserId(userId);
+        passenger.setUser(userId);
         passenger.setPassport(passport);
 
         when(passengerRepository.findById(passengerId)).thenReturn(Optional.of(passenger));
@@ -241,7 +241,7 @@ class PassengerServiceTest {
         Long hackerId = 666L;
         var passenger = new Passenger();
         passenger.setId(1L);
-        passenger.setUserId(currentUserId);
+        passenger.setUser(currentUserId);
         when(passengerRepository.findById(1L)).thenReturn(Optional.of(passenger));
 
         assertThrows(ValidationException.class, () -> passengerService.delete(passenger.getId(), hackerId));

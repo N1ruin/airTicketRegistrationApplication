@@ -96,7 +96,7 @@ public class PassengerServlet extends HttpServlet {
 
         var currentUserId = sessionAttributeExtractor.extractId(req);
         var passenger = createPassengerRequestConverter.convert(request);
-        passenger.setUserId(currentUserId);
+        passenger.setUser(currentUserId);
 
         var savedPassenger = passengerService.save(passenger);
 
