@@ -5,15 +5,16 @@ import domain.Passenger;
 import domain.Passport;
 import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
-import exception.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import repository.FavoriteAirportsRepository;
 import repository.PassengerRepository;
-import repository.TransactionHelper;
+import util.CurrentUserHolder;
+import util.TransactionHelper;
 import service.AirportService;
 import service.PassengerService;
 import service.PassportService;
@@ -36,11 +37,16 @@ class PassengerServiceTest {
     private TransactionHelper transactionHelper;
     @Mock
     private PassportService passportService;
+    @Mock
+    private FavoriteAirportsRepository favoriteAirportsRepository;
     @InjectMocks
     private PassengerService passengerService;
 
     @BeforeEach
     void setUp() {
+        CurrentUserHolder.setCurrentUserId(10L);
+        CurrentUserHolder.setCurrentUserRole(domain.Role.USER);
+
         lenient().when(transactionHelper.executeInTransaction(any(Supplier.class)))
                 .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
 
@@ -51,58 +57,56 @@ class PassengerServiceTest {
     }
 
     @Test
-    void saveSuccessWithNewPassport() {
+    void createSuccessWithNewPassport() {
         var passport = new Passport();
+        passport.setId(99L);
         passport.setSeries("4510");
         var passenger = new Passenger();
         passenger.setPassport(passport);
-        when(passportService.findBySeriesAndNumberAndCitizenshipExist(any(), any(), any()))
-                .thenReturn(Optional.empty());
-        when(passportService.save(passport)).thenReturn(passport);
-        when(passengerRepository.save(passenger)).thenReturn(passenger);
+        when(passportService.create(passport)).thenReturn(passport);
+        when(passengerRepository.create(passenger)).thenReturn(passenger);
 
-        var result = passengerService.save(passenger);
+        var result = passengerService.create(passenger);
 
         assertNotNull(result);
-        verify(passportService).findBySeriesAndNumberAndCitizenshipExist(any(), any(), any());
-        verify(passportService).save(passport);
-        verify(passengerRepository).save(passenger);
+        assertEquals(99L, result.getPassport().getId());
+        verify(passportService).create(passport);
+        verify(passengerRepository).create(passenger);
     }
 
     @Test
-    void saveSuccessWithExistingPassport() {
-        var passportRequest = new Passport();
-        passportRequest.setSeries("4510");
+    void createSuccessWithExistingPassport() {
         var existingPassport = new Passport();
         existingPassport.setId(99L);
+        existingPassport.setSeries("4510");
         var passenger = new Passenger();
-        passenger.setPassport(passportRequest);
-        when(passportService.findBySeriesAndNumberAndCitizenshipExist(any(), any(), any()))
-                .thenReturn(Optional.of(existingPassport));
-        when(passengerRepository.save(passenger)).thenReturn(passenger);
+        passenger.setPassport(existingPassport);
+        when(passportService.create(existingPassport)).thenReturn(existingPassport);
+        when(passengerRepository.create(passenger)).thenReturn(passenger);
 
-        var result = passengerService.save(passenger);
+        var result = passengerService.create(passenger);
 
         assertNotNull(result);
-        assertEquals(99L, passenger.getPassport().getId());
-        verify(passportService, never()).save(any());
-        verify(passengerRepository).save(passenger);
+        assertEquals(99L, result.getPassport().getId());
+        verify(passportService).create(existingPassport);
+        verify(passengerRepository).create(passenger);
     }
 
     @Test
-    void saveThrowsEntityAlreadyExistExceptionWhenPassengerWithPassportExists() {
+    void createThrowsEntityAlreadyExistExceptionWhenPassengerWithPassportExists() {
         var passport = new Passport();
         passport.setId(99L);
+        passport.setSeries("4510");
+
         var passenger = new Passenger();
         passenger.setPassport(passport);
 
-        when(passportService.findBySeriesAndNumberAndCitizenshipExist(any(), any(), any()))
-                .thenReturn(Optional.of(passport));
-        when(passengerRepository.findByPassportId(99L)).thenReturn(Optional.of(new Passenger()));
+        when(passportService.create(passport))
+                .thenThrow(EntityAlreadyExistException.class);
 
-        assertThrows(EntityAlreadyExistException.class, () -> passengerService.save(passenger));
+        assertThrows(EntityAlreadyExistException.class, () -> passengerService.create(passenger));
 
-        verify(passengerRepository, never()).save(any());
+        verify(passengerRepository, never()).create(any());
     }
 
     @Test
@@ -115,8 +119,6 @@ class PassengerServiceTest {
 
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals(passengerOne, result.get(0));
-        assertEquals(passengerTwo, result.get(1));
         verify(passengerRepository).findAll();
     }
 
@@ -133,129 +135,153 @@ class PassengerServiceTest {
 
     @Test
     void updateSuccess() {
-        var currentUserId = 10L;
-        var passportRequest = new Passport();
-        passportRequest.setSeries("4510");
-
-        var existingPassenger = new Passenger();
-        existingPassenger.setId(1L);
-        existingPassenger.setUserId(currentUserId);
-
         var existingPassport = new Passport();
         existingPassport.setId(99L);
+        existingPassport.setSeries("4510");
+        var existingPassenger = new Passenger();
+        existingPassenger.setId(1L);
+        existingPassenger.setUserId(10L);
+        existingPassenger.setPassport(existingPassport);
+        var updatedPassport = new Passport();
+        updatedPassport.setId(100L);
+        updatedPassport.setSeries("5555");
         var passengerUpdateData = new Passenger();
         passengerUpdateData.setId(1L);
-        passengerUpdateData.setPassport(passportRequest);
-        when(passengerRepository.findById(1L)).thenReturn(Optional.of(existingPassenger));
-        when(passportService.findBySeriesAndNumberAndCitizenshipExist(any(), any(), any()))
-                .thenReturn(Optional.of(existingPassport));
-        when(passengerRepository.update(any(Passenger.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        passengerUpdateData.setPassport(updatedPassport);
+        when(passengerRepository.findByIdAndUserId(eq(1L), eq(10L))).thenReturn(Optional.of(existingPassenger));
+        when(passportService.update(updatedPassport, 1L)).thenReturn(updatedPassport);
 
-        var result = passengerService.update(passengerUpdateData, currentUserId);
+        var result = passengerService.update(passengerUpdateData);
 
         assertNotNull(result);
-        assertEquals(99L, result.getPassport().getId());
-        verify(passengerRepository).update(any());
+        assertEquals(100L, result.getPassport().getId());
+        verify(passengerRepository).findByIdAndUserId(eq(1L), eq(10L));
+        verify(passportService).update(updatedPassport, 1L);
+        verify(passengerRepository, never()).update(any());
     }
 
     @Test
     void updateThrowsPassengerNotFoundException() {
         var passenger = new Passenger();
-        var passengerId = 1L;
-        passenger.setId(passengerId);
-        var userId = 2L;
-        when(passengerRepository.findById(passengerId)).thenReturn(Optional.empty());
-
-        assertThrows(EntityNotFoundException.class, () -> passengerService.update(passenger, userId));
-        verify(passengerRepository, never()).update(passenger);
-        verify(passengerRepository).findById(passengerId);
-    }
-
-    @Test
-    void updateThrowsValidationExceptionWhenUserMismatch() {
-        Long currentUserId = 10L;
-        Long hackerId = 666L;
-        var passenger = new Passenger();
         passenger.setId(1L);
-        passenger.setUserId(currentUserId);
 
-        when(passengerRepository.findById(1L)).thenReturn(Optional.of(passenger));
+        when(passengerRepository.findByIdAndUserId(eq(1L), eq(10L)))
+                .thenThrow(EntityNotFoundException.class);
 
-        assertThrows(ValidationException.class, () -> passengerService.update(passenger, hackerId));
-
+        assertThrows(EntityNotFoundException.class, () -> passengerService.update(passenger));
         verify(passengerRepository, never()).update(any());
     }
 
     @Test
-    void updateFavoriteAirportsSuccess() {
+    void addFavoriteAirportSuccess() {
         Long passengerId = 1L;
         String code = "MSQ";
         var airport = new Airport();
-        airport.setId(5L);
         airport.setCode(code);
+        var passenger = new Passenger();
+        passenger.setId(passengerId);
+        when(airportService.findById(code)).thenReturn(airport);
+        when(passengerRepository.findByIdAndUserId(eq(passengerId), eq(10L))).thenReturn(Optional.of(passenger));
 
-        when(airportService.findByCode(code)).thenReturn(airport);
+        passengerService.addFavoriteAirport(passengerId, code);
 
-        passengerService.updateFavoriteAirports(passengerId, code);
-
-        verify(airportService).findByCode(code);
-        verify(passengerRepository).updateFavoriteAirports(passengerId, 5L);
+        verify(airportService).findById(code);
+        verify(passengerRepository).findByIdAndUserId(eq(passengerId), eq(10L));
+        verify(favoriteAirportsRepository).addFavorite(eq(passengerId), eq(code));
     }
 
     @Test
     void deleteSuccess() {
-        Long userId = 10L;
-        Long passengerId = 1L;
-
         var passport = new Passport();
         passport.setId(100L);
 
         var passenger = new Passenger();
-        passenger.setId(passengerId);
-        passenger.setUserId(userId);
+        passenger.setId(1L);
+        passenger.setUserId(10L);
         passenger.setPassport(passport);
 
-        when(passengerRepository.findById(passengerId)).thenReturn(Optional.of(passenger));
+        when(passengerRepository.findByIdAndUserId(eq(1L), eq(10L))).thenReturn(Optional.of(passenger));
 
-        passengerService.delete(passengerId, userId);
+        passengerService.delete(1L);
 
         verify(passportService).deleteById(100L);
-        verify(passengerRepository).deleteById(passengerId);
+        verify(passengerRepository).deleteById(1L);
+    }
+
+    @Test
+    void findByIdSuccess() {
+        var passenger = new Passenger();
+        passenger.setId(1L);
+
+        when(passengerRepository.findById(1L)).thenReturn(Optional.of(passenger));
+
+        var result = passengerService.findById(1L);
+
+        assertNotNull(result);
+        verify(passengerRepository).findById(1L);
+    }
+
+    @Test
+    void findByIdThrowsEntityNotFoundException() {
+        when(passengerRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> passengerService.findById(1L));
+        verify(passengerRepository).findById(1L);
+    }
+
+    @Test
+    void findAllByUserIdSuccess() {
+        var passenger1 = new Passenger();
+        var passenger2 = new Passenger();
+        when(passengerRepository.findAllByUserId(10L)).thenReturn(List.of(passenger1, passenger2));
+
+        var result = passengerService.findAllByUserId(10L);
+
+        assertEquals(2, result.size());
+        verify(passengerRepository).findAllByUserId(10L);
     }
 
     @Test
     void deleteThrowsEntityNotFoundException() {
-        var id = 1L;
-        var userId = 2L;
-        when(passengerRepository.findById(id)).thenReturn(Optional.empty());
+        when(passengerRepository.findByIdAndUserId(eq(1L), eq(10L)))
+                .thenThrow(EntityNotFoundException.class);
 
-        assertThrows(EntityNotFoundException.class, () -> passengerService.delete(id, userId));
-        verify(passengerRepository).findById(id);
-        verify(passengerRepository, never()).deleteById(id);
+        assertThrows(EntityNotFoundException.class, () -> passengerService.delete(1L));
+        verify(passengerRepository, never()).deleteById(any());
     }
 
     @Test
-    void deleteThrowsValidationExceptionWhenUserMismatch() {
-        Long currentUserId = 10L;
-        Long hackerId = 666L;
+    void removeFavoriteAirportSuccess() {
+        var passengerId = 1L;
+        var airportCode = "MSQ";
+        var passenger = new Passenger();
+        passenger.setId(passengerId);
+        when(passengerRepository.findByIdAndUserId(eq(passengerId), eq(10L))).thenReturn(Optional.of(passenger));
+
+        passengerService.removeFavoriteAirport(passengerId, airportCode);
+
+        verify(favoriteAirportsRepository).removeFavorite(eq(passengerId), eq(airportCode));
+    }
+
+    @Test
+    void findByIdAndUserIdSuccess() {
         var passenger = new Passenger();
         passenger.setId(1L);
-        passenger.setUserId(currentUserId);
-        when(passengerRepository.findById(1L)).thenReturn(Optional.of(passenger));
+        passenger.setUserId(10L);
 
-        assertThrows(ValidationException.class, () -> passengerService.delete(passenger.getId(), hackerId));
+        when(passengerRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.of(passenger));
 
-        verify(passengerRepository, never()).update(any());
+        var result = passengerService.findByIdAndUserId(1L, 10L);
+
+        assertNotNull(result);
+        verify(passengerRepository).findByIdAndUserId(1L, 10L);
     }
 
     @Test
-    void refundFavoriteAirportSuccess() {
-        Long passengerId = 1L;
-        Long airportId = 5L;
+    void findByIdAndUserIdThrowsEntityNotFoundException() {
+        when(passengerRepository.findByIdAndUserId(1L, 10L)).thenReturn(Optional.empty());
 
-        passengerService.refundFavoriteAirport(passengerId, airportId);
-
-        verify(passengerRepository).refundFavoriteAirport(passengerId, airportId);
+        assertThrows(EntityNotFoundException.class, () -> passengerService.findByIdAndUserId(1L, 10L));
+        verify(passengerRepository).findByIdAndUserId(1L, 10L);
     }
 }

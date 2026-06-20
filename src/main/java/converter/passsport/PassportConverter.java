@@ -9,6 +9,11 @@ public class PassportConverter implements Converter<PassportDto, Passport> {
     public Passport convert(PassportDto dto) {
         var passport = new Passport();
 
+        passport.setFirstName(dto.firstName());
+        passport.setLastName(dto.lastName());
+        passport.setFatherName(dto.fatherName());
+        passport.setMale(dto.isMale());
+        passport.setBirthDate(dto.birthDate());
         passport.setSeries(dto.series());
         passport.setNumber(dto.number());
         passport.setCitizenship(dto.citizenship());

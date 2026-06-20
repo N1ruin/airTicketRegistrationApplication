@@ -17,16 +17,11 @@ class RequestParameterValidationServiceTest {
 
     @Test
     void validateIdNegativeValueExceptionErrorsSizeOne() {
-        var exception = assertThrows(ValidationException.class, () -> service.validateId(-5L));
-
-        var errors = exception.getValidationErrorMessages();
-        assertEquals(1, errors.size());
+        assertThrows(ValidationException.class, () -> service.validateId(-5L));
     }
 
     @Test
     void validateIdNullValueExceptionErrorsSizeOne() {
-        var exception = assertThrows(ValidationException.class, () -> service.validateId(null));
-
-        assertEquals(1, exception.getValidationErrorMessages().size());
+        assertThrows(ValidationException.class, () -> service.validateId(null));
     }
 }

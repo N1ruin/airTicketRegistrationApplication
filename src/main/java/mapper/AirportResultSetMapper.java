@@ -1,16 +1,13 @@
 package mapper;
 
 import domain.Airport;
-import domain.AirportStatus;
 import exception.MappingException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
-public class AirportResultSetMapper implements ResultSetMapper<Optional<Airport>>, ResultSetListMapper<Airport> {
+public class AirportResultSetMapper implements ResultSetMapper<Airport> {
     private final AddressResultSetMapper addressResultSetMapper;
 
     public AirportResultSetMapper(AddressResultSetMapper addressResultSetMapper) {
@@ -18,34 +15,18 @@ public class AirportResultSetMapper implements ResultSetMapper<Optional<Airport>
     }
 
     @Override
-    public Optional<Airport> map(ResultSet resultSet) throws SQLException {
-        return resultSet.next() ? mapRow(resultSet) : Optional.empty();
-    }
-
-    private Optional<Airport> mapRow(ResultSet resultSet) throws SQLException {
+    public Optional<Airport> mapRow(ResultSet resultSet) throws SQLException {
         var airport = new Airport();
 
-        airport.setId(resultSet.getLong("airport_id"));
         airport.setCode(resultSet.getString("airport_code"));
         airport.setName(resultSet.getString("airport_name"));
-        airport.setAirportStatus(AirportStatus.valueOf(resultSet.getString("airport_status")));
+        airport.setWorked(resultSet.getBoolean("airport_worked"));
 
         var address = addressResultSetMapper.map(resultSet)
-                .orElseThrow(() -> new MappingException("Address mapping error"));
+                .orElseThrow(() -> new MappingException("Address mapping error for airport: " + airport.getCode()));
 
         airport.setAddress(address);
 
         return Optional.of(airport);
-    }
-
-    @Override
-    public List<Airport> mapList(ResultSet resultSet) throws SQLException {
-        var airports = new ArrayList<Airport>();
-
-        while (resultSet.next()) {
-            mapRow(resultSet).ifPresent(airports::add);
-        }
-
-        return airports;
     }
 }

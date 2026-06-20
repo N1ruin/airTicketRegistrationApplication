@@ -2,19 +2,22 @@ package dto.airport;
 
 import dto.address.AddressDto;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 @Schema(description = "Запрос на обновление данных аэропорта")
 public record UpdateAirportRequest(
-        @Schema(description = "Id аэропорта, данные которого обновляются", example = "1",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        Long id,
-        @Schema(description = "Новый международный код аэропорта", example = "LED",
-                nullable = true)
-        String code,
-        @Schema(description = "Новое название аэропорта", example = "Пулково",
-                nullable = true)
+        @Schema(description = "Новое название аэропорта", example = "Пулково", nullable = true)
+        @NotNull(message = "Airport name is required")
+        @Pattern(regexp = "^[a-zA-Z0-9.\\s-]{3,100}$", message = "Invalid name format")
         String name,
-        @Schema(description = "Новые данные адреса",
-                nullable = true)
+
+        @NotNull(message = "Status is required")
+        Boolean isWorked,
+
+        @Schema(description = "Новые данные адреса", nullable = true)
+        @NotNull(message = "Address is required")
+        @Valid
         AddressDto addressDto) {
 }

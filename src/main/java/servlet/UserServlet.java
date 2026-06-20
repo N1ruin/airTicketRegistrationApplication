@@ -1,9 +1,7 @@
 package servlet;
 
 import converter.user.UserDtoConverter;
-import converter.user.UserUpdateResponseConverter;
 import dto.user.UpdateUserRequest;
-import dto.user.UpdateUserResponse;
 import dto.user.UserDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,47 +21,44 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.HttpHelper;
 import service.UserService;
+import util.CurrentUserHolder;
+import util.JsonHelper;
+import util.RequestParameterExtractor;
 import validation.RequestParameterValidationService;
-import validation.UserValidationService;
+import validation.validator.ValidationService;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import static constant.AttributeName.*;
+import static constant.ServletContextAttributeKey.*;
 
 @WebServlet("/api/v1/user")
 @Path("/ticket-app/api/v1/user")
 public class UserServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(UserServlet.class);
-    private HttpHelper httpHelper;
+    private JsonHelper jsonHelper;
     private UserService userService;
     private RequestParameterExtractor parameterExtractor;
     private RequestParameterValidationService requestParameterValidationService;
     private UserDtoConverter userDtoConverter;
-    private PermissionChecker permissionChecker;
-    private UserValidationService userValidationService;
-    private UserUpdateResponseConverter userUpdateResponseConverter;
-    private SessionAttributeExtractor sessionAttributeExtractor;
+    private ValidationService validationService;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        log.info("Servlet {} initialization start", getClass().getSimpleName());
+        log.info("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
-        httpHelper = (HttpHelper) context.getAttribute(HTTP_HELPER);
+        jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
         userService = (UserService) context.getAttribute(USER_SERVICE);
         parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
         requestParameterValidationService =
                 (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
         userDtoConverter = (UserDtoConverter) context.getAttribute(USER_DTO_CONVERTER);
-        permissionChecker = (PermissionChecker) context.getAttribute(PERMISSION_CHECKER);
-        userValidationService = (UserValidationService) context.getAttribute(USER_VALIDATION_SERVICE);
-        userUpdateResponseConverter = (UserUpdateResponseConverter) context.getAttribute(USER_UPDATE_RESPONSE_CONVERTER);
-        sessionAttributeExtractor = (SessionAttributeExtractor) context.getAttribute(SESSION_ATTRIBUTE_EXTRACTOR);
+        validationService = (ValidationService) context.getAttribute(VALIDATION_SERVICE);
 
-        log.info("Servlet {} initialization finish", getClass().getSimpleName());
+        log.info("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @GET
@@ -86,19 +81,24 @@ public class UserServlet extends HttpServlet {
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (!permissionChecker.isAdmin(req)) {
+        if (!CurrentUserHolder.isAdmin()) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
             return;
         }
 
-        var id = parameterExtractor.extractId(req);
+        var id = parameterExtractor.extractId(req, false);
 
+        String responseBodyJson;
         if (id == null) {
-            findAll(resp);
+            responseBodyJson = findAll();
         } else {
-            findById(resp, id);
+            responseBodyJson = findById(id);
         }
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(responseBodyJson.getBytes(StandardCharsets.UTF_8));
     }
 
     @PUT
@@ -107,7 +107,7 @@ public class UserServlet extends HttpServlet {
             requestBody = @RequestBody(description = "Обновленные данные пользователя", required = true,
                     content = @Content(schema = @Schema(implementation = UpdateUserRequest.class))),
             responses = {@ApiResponse(responseCode = "200", description = "Данные успешно обновлены",
-                    content = @Content(schema = @Schema(implementation = UpdateUserResponse.class))),
+                    content = @Content(schema = @Schema(implementation = UserDto.class))),
                     @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
                     @ApiResponse(responseCode = "401", description = "Не авторизован"),
                     @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
@@ -115,43 +115,40 @@ public class UserServlet extends HttpServlet {
     @Override
     public void doPut(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (permissionChecker.isAdmin(req)) {
+        if (CurrentUserHolder.isAdmin()) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
-        var currentUserId = sessionAttributeExtractor.extractId(req);
+        var body = new String(req.getInputStream().readAllBytes());
+        var request = jsonHelper.fromJson(body, UpdateUserRequest.class);
 
-        var request = httpHelper.getRequestBody(req, UpdateUserRequest.class);
+        validationService.validate(request);
 
-        userValidationService.validateUpdateRequest(request);
+        var updatedUser = userService.update(request.newPassword());
 
-        var updatedUser = userService.update(request.id(), request.newPassword(), request.firstName(), request.lastName(),
-                request.fatherName(), currentUserId);
-
-        var response = userUpdateResponseConverter.convert(updatedUser);
+        var response = userDtoConverter.convert(updatedUser);
 
         resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, response);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(jsonHelper.toJson(response).getBytes(StandardCharsets.UTF_8));
     }
 
-    private void findById(HttpServletResponse resp, long id) throws IOException {
+    private String findById(long id) {
         requestParameterValidationService.validateId(id);
 
         var user = userService.findById(id);
 
         var userDto = userDtoConverter.convert(user);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, userDto);
+        return jsonHelper.toJson(userDto);
     }
 
-    private void findAll(HttpServletResponse resp) throws IOException {
+    private String findAll() {
         var passengers = userService.findAll();
 
         var userDtos = userDtoConverter.convertAll(passengers);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, userDtos);
+        return jsonHelper.toJson(userDtos);
     }
 }

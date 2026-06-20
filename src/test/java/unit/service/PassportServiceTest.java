@@ -1,6 +1,7 @@
 package unit.service;
 
 import domain.Passport;
+import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import repository.PassportRepository;
-import repository.TransactionHelper;
+import util.TransactionHelper;
 import service.PassportService;
 
 import java.time.LocalDate;
@@ -42,88 +43,77 @@ class PassportServiceTest {
     }
 
     @Test
-    void saveSuccess() {
+    void createSuccess() {
         var passport = getPassport();
-        when(passportRepository.findBySeriesAndNumberAndCitizenship(anyString(), anyString(), anyString()))
+        when(passportRepository.findBySeriesAndNumberAndCitizenship(
+                passport.getSeries(), passport.getNumber(), passport.getCitizenship()))
                 .thenReturn(Optional.empty());
-        when(passportRepository.save(any(Passport.class))).thenAnswer(invocation -> {
+        when(passportRepository.create(passport)).thenAnswer(invocation -> {
             Passport p = invocation.getArgument(0);
             p.setId(1L);
             return p;
         });
 
-        var result = passportService.save(passport);
+        var result = passportService.create(passport);
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("Series", result.getSeries());
-        assertEquals("Number", result.getNumber());
-        assertEquals("Citizenship", result.getCitizenship());
-        assertEquals(LocalDate.now(), result.getIssueDate());
-        assertEquals(LocalDate.now().plusYears(5), result.getExpiredDate());
-        verify(passportRepository)
-                .findBySeriesAndNumberAndCitizenship(result.getSeries(), result.getNumber(), result.getCitizenship());
-        verify(passportRepository).save(passport);
+        verify(passportRepository).findBySeriesAndNumberAndCitizenship(
+                passport.getSeries(), passport.getNumber(), passport.getCitizenship());
+        verify(passportRepository).create(passport);
     }
 
     @Test
-    void saveExistingPassportReturnsExisted() {
-        var passportRequest = getPassport();
-        var existingPassport = getPassport();
-        existingPassport.setId(99L);
-        when(passportRepository.findBySeriesAndNumberAndCitizenship(anyString(), anyString(), anyString()))
+    void createThrowsEntityAlreadyExistExceptionWhenPassportExists() {
+        var passport = getPassport();
+        var existingPassport = new Passport();
+
+        when(passportRepository.findBySeriesAndNumberAndCitizenship(
+                passport.getSeries(), passport.getNumber(), passport.getCitizenship()))
                 .thenReturn(Optional.of(existingPassport));
 
-        var result = passportService.save(passportRequest);
+        assertThrows(EntityAlreadyExistException.class, () -> passportService.create(passport));
 
-        assertNotNull(result);
-        assertEquals(99L, result.getId());
-        verify(passportRepository, never()).save(any());
+        verify(passportRepository).findBySeriesAndNumberAndCitizenship(
+                passport.getSeries(), passport.getNumber(), passport.getCitizenship());
+        verify(passportRepository, never()).create(any());
     }
 
     @Test
     void updateSuccess() {
-        var passport = getPassport();
-        var existedPassport = getPassport();
-        existedPassport.setId(1L);
-        when(passportRepository.findBySeriesAndNumberAndCitizenship(passport.getSeries(), passport.getNumber(),
-                passport.getCitizenship()))
-                .thenReturn(Optional.of(existedPassport));
-        when(passportRepository.update(passport)).thenReturn(passport);
+        var passengerId = 1L;
+        var existingPassport = getPassport();
+        existingPassport.setId(100L);
+        var updatedPassport = getPassport();
+        updatedPassport.setSeries("NewSeries");
+        when(passportRepository.findByPassengerId(passengerId)).thenReturn(Optional.of(existingPassport));
+        when(passportRepository.update(existingPassport)).thenReturn(existingPassport);
 
-        var result = passportService.update(passport);
+        var result = passportService.update(updatedPassport, passengerId);
 
         assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals("Series", result.getSeries());
-        assertEquals("Number", result.getNumber());
-        assertEquals("Citizenship", result.getCitizenship());
-        assertEquals(LocalDate.now(), result.getIssueDate());
-        assertEquals(LocalDate.now().plusYears(5), result.getExpiredDate());
-        verify(passportRepository)
-                .findBySeriesAndNumberAndCitizenship(passport.getSeries(), passport.getNumber(), passport.getCitizenship());
-        verify(passportRepository).update(passport);
+        assertEquals(100L, result.getId());
+        assertEquals("NewSeries", result.getSeries());
+        verify(passportRepository).findByPassengerId(passengerId);
+        verify(passportRepository).update(existingPassport);
     }
 
     @Test
     void updatePassportNotFoundThrowsException() {
+        var passengerId = 999L;
         var passport = getPassport();
-        when(passportRepository.findBySeriesAndNumberAndCitizenship(passport.getSeries(), passport.getNumber(),
-                passport.getCitizenship()))
-                .thenReturn(Optional.empty());
+        when(passportRepository.findByPassengerId(passengerId)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> passportService.update(passport));
+        assertThrows(EntityNotFoundException.class, () -> passportService.update(passport, passengerId));
 
-        verify(passportRepository)
-                .findBySeriesAndNumberAndCitizenship(passport.getSeries(), passport.getNumber(), passport.getCitizenship());
-        verify(passportRepository, times(0)).update(passport);
+        verify(passportRepository).findByPassengerId(passengerId);
+        verify(passportRepository, never()).update(any());
     }
 
     @Test
     void deleteSuccess() {
         var id = 1L;
-        var passport = getPassport();
-        passport.setId(id);
         when(passportRepository.findById(id)).thenReturn(Optional.of(new Passport()));
 
         passportService.deleteById(id);
@@ -134,42 +124,13 @@ class PassportServiceTest {
 
     @Test
     void deleteThrowsNotFoundException() {
-        var id = 1L;
-        var address = getPassport();
-        address.setId(id);
+        var id = 999L;
         when(passportRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> passportService.deleteById(id));
 
         verify(passportRepository).findById(id);
-    }
-
-    @Test
-    void checkPassportExistSuccess() {
-        var series = "Series";
-        var number = "Number";
-        var citizenship = "Citizenship";
-        when(passportRepository.findBySeriesAndNumberAndCitizenship(series, number, citizenship))
-                .thenReturn(Optional.of(new Passport()));
-
-        assertDoesNotThrow(() ->
-                passportService.findBySeriesAndNumberAndCitizenshipExist(series, number, citizenship));
-
-        verify(passportRepository).findBySeriesAndNumberAndCitizenship(series, number, citizenship);
-    }
-
-    @Test
-    void checkPassportExistThrowsNotFoundException() {
-        var series = "Series";
-        var number = "Number";
-        var citizenship = "Citizenship";
-        when(passportRepository.findBySeriesAndNumberAndCitizenship(series, number, citizenship))
-                .thenReturn(Optional.empty());
-
-        var result = passportService.findBySeriesAndNumberAndCitizenshipExist(series, number, citizenship);
-
-        assertTrue(result.isEmpty());
-        verify(passportRepository).findBySeriesAndNumberAndCitizenship(series, number, citizenship);
+        verify(passportRepository, never()).deleteById(any());
     }
 
     private Passport getPassport() {
@@ -177,9 +138,13 @@ class PassportServiceTest {
         passport.setSeries("Series");
         passport.setNumber("Number");
         passport.setCitizenship("Citizenship");
+        passport.setFirstName("FirstName");
+        passport.setLastName("LastName");
+        passport.setFatherName("FatherName");
+        passport.setBirthDate(LocalDate.now().minusYears(20));
         passport.setIssueDate(LocalDate.now());
         passport.setExpiredDate(LocalDate.now().plusYears(5));
-
+        passport.setMale(true);
         return passport;
     }
 }

@@ -10,7 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import repository.AddressRepository;
-import repository.TransactionHelper;
+import util.TransactionHelper;
 import service.AddressService;
 
 import java.util.Optional;
@@ -42,16 +42,16 @@ class AddressServiceTest {
     }
 
     @Test
-    void saveSuccess() {
+    void createSuccess() {
         var address = getAddress();
         when(addressRepository.findByCountryAndCityAndStreetAndHouseNumber(address)).thenReturn(Optional.empty());
-        when(addressRepository.save(address)).thenAnswer(invocation -> {
+        when(addressRepository.create(address)).thenAnswer(invocation -> {
             Address addres = invocation.getArgument(0);
             addres.setId(1L);
             return addres;
         });
 
-        var result = addressService.save(address);
+        var result = addressService.create(address);
 
         assertNotNull(result);
         assertEquals(1L, address.getId());
@@ -60,48 +60,57 @@ class AddressServiceTest {
         assertEquals("Street", result.getStreet());
         assertEquals(1, result.getHouseNumber());
         verify(addressRepository).findByCountryAndCityAndStreetAndHouseNumber(address);
-        verify(addressRepository).save(address);
+        verify(addressRepository).create(address);
     }
 
     @Test
-    void saveThrowEntityAlreadyExist() {
+    void createThrowEntityAlreadyExist() {
         var address = getAddress();
-        when(addressRepository.findByCountryAndCityAndStreetAndHouseNumber(address)).thenReturn(Optional.of(new Address()));
+        when(addressRepository.findByCountryAndCityAndStreetAndHouseNumber(address))
+                .thenReturn(Optional.of(new Address()));
 
-        assertThrows(EntityAlreadyExistException.class, () -> addressService.save(address));
+        assertThrows(EntityAlreadyExistException.class, () -> addressService.create(address));
         verify(addressRepository).findByCountryAndCityAndStreetAndHouseNumber(address);
+        verify(addressRepository, never()).create(any());
     }
 
     @Test
     void updateSuccess() {
-        var airportId = 1L;
-        var newAddressData = getAddress();
-        var existingAddress = new Address();
+        var existingAddress = getAddress();
         existingAddress.setId(100L);
         existingAddress.setStreet("Old Street");
-        when(addressRepository.findByAirportId(airportId)).thenReturn(Optional.of(existingAddress));
+
+        var newAddressData = getAddress();
+        newAddressData.setId(100L);
+        newAddressData.setStreet("New Street");
+
+        when(addressRepository.findById(existingAddress.getId())).thenReturn(Optional.of(existingAddress));
         when(addressRepository.update(any(Address.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        var result = addressService.update(newAddressData, airportId);
+        var result = addressService.update(newAddressData);
 
         assertNotNull(result);
         assertEquals(100L, result.getId());
         assertEquals("Country", result.getCountry());
         assertEquals("City", result.getCity());
-        assertEquals("Street", result.getStreet());
+        assertEquals("New Street", result.getStreet());
         assertEquals(1, result.getHouseNumber());
-        verify(addressRepository).findByAirportId(airportId);
+        verify(addressRepository).findById(existingAddress.getId());
         verify(addressRepository).update(existingAddress);
     }
 
     @Test
     void updateAddressExistThrowAlreadyExistException() {
-        var airportId = 1L;
         var address = getAddress();
-        when(addressRepository.findByAirportId(airportId)).thenReturn(Optional.empty());
+        address.setId(999L);
 
-        assertThrows(EntityNotFoundException.class, () -> addressService.update(address, airportId));
+        when(addressRepository.findById(address.getId())).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> addressService.update(address));
+
+        verify(addressRepository).findById(address.getId());
+        verify(addressRepository, never()).update(any());
     }
 
     private Address getAddress() {

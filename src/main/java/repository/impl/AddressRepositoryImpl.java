@@ -3,10 +3,8 @@ package repository.impl;
 import domain.Address;
 import exception.RepositoryException;
 import mapper.AddressResultSetMapper;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import repository.AddressRepository;
-import repository.ConnectionHelper;
+import util.ConnectionHelper;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -14,19 +12,23 @@ import java.util.List;
 import java.util.Optional;
 
 public class AddressRepositoryImpl implements AddressRepository {
-    public static final Logger log = LogManager.getLogger(AddressRepositoryImpl.class);
+    private static final String SELECT_QUERY = "SELECT id, country, city, street, house_number FROM tickets_application.address ";
     private final ConnectionHelper connectionHelper;
-    private final AddressResultSetMapper addressResultSetMapper;
+    private final AddressResultSetMapper resultSetMapper;
 
-    public AddressRepositoryImpl(ConnectionHelper connectionHelper, AddressResultSetMapper addressResultSetMapper) {
+    public AddressRepositoryImpl(ConnectionHelper connectionHelper, AddressResultSetMapper resultSetMapper) {
         this.connectionHelper = connectionHelper;
-        this.addressResultSetMapper = addressResultSetMapper;
+        this.resultSetMapper = resultSetMapper;
     }
 
     @Override
-    public Address save(Address address) {
+    public Address create(Address address) {
         var sql = """
-                INSERT INTO tickets_application.address(country, city, street, house_number)
+                INSERT INTO tickets_application.address(
+                country,
+                city,
+                street,
+                house_number)
                 VALUES (?, ?, ?, ?)
                 RETURNING id;
                 """;
@@ -42,25 +44,46 @@ public class AddressRepositoryImpl implements AddressRepository {
 
             return address;
         } catch (SQLException e) {
-            log.error(e);
-            throw new RepositoryException("Address saving error");
+            throw new RepositoryException("Address creation error", e);
         }
     }
 
     @Override
     public Optional<Address> findById(Long id) {
-        throw new UnsupportedOperationException();
+        var sql = SELECT_QUERY + "WHERE id = ? ";
+
+        var connection = connectionHelper.getConnection();
+        try (var preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, id);
+            var resultSet = preparedStatement.executeQuery();
+
+            return resultSetMapper.map(resultSet);
+        } catch (SQLException e) {
+            throw new RepositoryException("Address find by id error", e);
+        }
     }
 
     @Override
     public List<Address> findAll() {
-        throw new UnsupportedOperationException();
+        var connection = connectionHelper.getConnection();
+        try (var preparedStatement = connection.prepareStatement(SELECT_QUERY)) {
+            var resultSet = preparedStatement.executeQuery();
+
+            return resultSetMapper.mapList(resultSet);
+        } catch (SQLException e) {
+            throw new RepositoryException("Address find all error", e);
+        }
     }
 
     @Override
     public Address update(Address address) {
         var sql = """
-                UPDATE tickets_application.address SET country = ?, city = ?, street = ?, house_number = ? WHERE id = ?
+                UPDATE tickets_application.address SET
+                country = ?,
+                city = ?,
+                street = ?,
+                house_number = ?
+                WHERE id = ?
                 """;
 
         var connection = connectionHelper.getConnection();
@@ -72,20 +95,26 @@ public class AddressRepositoryImpl implements AddressRepository {
 
             return address;
         } catch (SQLException e) {
-            log.error(e);
-            throw new RepositoryException("Address update error");
+            throw new RepositoryException("Address update error", e);
         }
     }
 
     @Override
     public void deleteById(Long id) {
-        throw new UnsupportedOperationException();
+        var sql = "DELETE FROM tickets_application.address WHERE id = ?";
+        var connection = connectionHelper.getConnection();
+        try (var preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, id);
+            preparedStatement.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RepositoryException("Address find by id error", e);
+        }
     }
 
     @Override
     public Optional<Address> findByCountryAndCityAndStreetAndHouseNumber(Address address) {
-        var sql = """
-                    SELECT id, country, city, street, house_number FROM tickets_application.address
+        var sql = SELECT_QUERY + """
                     WHERE address.country = ?
                     AND address.city = ?
                     AND address.street = ?
@@ -98,35 +127,9 @@ public class AddressRepositoryImpl implements AddressRepository {
 
             var resultSet = preparedStatement.executeQuery();
 
-            return resultSet.next() ? Optional.of(address) : Optional.empty();
+            return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
-            log.error(e);
-            throw new RepositoryException("Address delete error");
-        }
-    }
-
-    @Override
-    public Optional<Address> findByAirportId(Long airportId) {
-        var sql = """
-                SELECT address.id AS address_id,
-                address.country AS address_country,
-                address.city AS address_city,
-                address.street AS address_street,
-                address.house_number AS address_house_number
-                FROM tickets_application.address AS address
-                JOIN tickets_application.airport AS airport ON address.id = airport.address_id
-                WHERE airport.id = ?;
-                """;
-        var connection = connectionHelper.getConnection();
-        try (var preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, airportId);
-
-            var resultSet = preparedStatement.executeQuery();
-
-            return resultSet.next() ? addressResultSetMapper.map(resultSet) : Optional.empty();
-        } catch (SQLException e) {
-            log.error(e);
-            throw new RepositoryException("Address delete error");
+            throw new RepositoryException("Address delete error", e);
         }
     }
 
@@ -134,6 +137,6 @@ public class AddressRepositoryImpl implements AddressRepository {
         preparedStatement.setString(1, address.getCountry());
         preparedStatement.setString(2, address.getCity());
         preparedStatement.setString(3, address.getStreet());
-        preparedStatement.setObject(4, address.getHouseNumber());
+        preparedStatement.setInt(4, address.getHouseNumber());
     }
 }

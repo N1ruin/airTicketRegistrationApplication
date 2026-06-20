@@ -7,13 +7,9 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Optional;
 
-public class PassportResultSetMapper implements ResultSetMapper<Optional<Passport>> {
+public class PassportResultSetMapper implements ResultSetMapper<Passport> {
     @Override
-    public Optional<Passport> map(ResultSet resultSet) throws SQLException {
-        return mapRow(resultSet);
-    }
-
-    private Optional<Passport> mapRow(ResultSet resultSet) throws SQLException {
+    public Optional<Passport> mapRow(ResultSet resultSet) throws SQLException {
         var passport = new Passport();
 
         passport.setId(resultSet.getLong("passport_id"));
@@ -22,6 +18,11 @@ public class PassportResultSetMapper implements ResultSetMapper<Optional<Passpor
         passport.setCitizenship(resultSet.getString("passport_citizenship"));
         passport.setIssueDate((resultSet.getObject("passport_issue_date", LocalDate.class)));
         passport.setExpiredDate(resultSet.getObject("passport_expired_date", LocalDate.class));
+        passport.setFirstName(resultSet.getString("first_name"));
+        passport.setLastName(resultSet.getString("last_name"));
+        passport.setFatherName(resultSet.getString("father_name"));
+        passport.setBirthDate(resultSet.getObject("birth_date", LocalDate.class));
+        passport.setMale(resultSet.getBoolean("male"));
 
         return Optional.of(passport);
     }

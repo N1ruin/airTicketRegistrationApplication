@@ -1,19 +1,15 @@
 package domain;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 public class Flight {
     private Long id;
     private Integer allSeats;
     private Integer freeSeats;
-    private Airport departureAirport;
-    private Airport arrivalAirport;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime departureDate;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime arrivalDate;
+    private String departureAirportCode;
+    private String arrivalAirportCode;
+    private ZonedDateTime departureDate;
+    private ZonedDateTime arrivalDate;
 
     public Long getId() {
         return id;
@@ -39,35 +35,36 @@ public class Flight {
         this.freeSeats = freeSeats;
     }
 
-    public Airport getDepartureAirport() {
-        return departureAirport;
-    }
-
-    public void setDepartureAirport(Airport departureAirport) {
-        this.departureAirport = departureAirport;
-    }
-
-    public Airport getArrivalAirport() {
-        return arrivalAirport;
-    }
-
-    public void setArrivalAirport(Airport arrivalAirport) {
-        this.arrivalAirport = arrivalAirport;
-    }
-
-    public LocalDateTime getDepartureDate() {
+    public ZonedDateTime getDepartureDate() {
         return departureDate;
     }
 
-    public void setDepartureDate(LocalDateTime departureDate) {
+    public void setDepartureDate(ZonedDateTime departureDate) {
         this.departureDate = departureDate;
     }
 
-    public LocalDateTime getArrivalDate() {
+    public ZonedDateTime getArrivalDate() {
         return arrivalDate;
     }
 
-    public void setArrivalDate(LocalDateTime arrivalDate) {
+    public void setArrivalDate(ZonedDateTime arrivalDate) {
         this.arrivalDate = arrivalDate;
     }
+
+    public String getDepartureAirportCode() {
+        return departureAirportCode;
+    }
+
+    public void setDepartureAirportCode(String departureAirportCode) {
+        this.departureAirportCode = departureAirportCode;
+    }
+
+    public String getArrivalAirportCode() {
+        return arrivalAirportCode;
+    }
+
+    public void setArrivalAirportCode(String arrivalAirportCode) {
+        this.arrivalAirportCode = arrivalAirportCode;
+    }
+
 }

@@ -1,7 +1,7 @@
 package servlet;
 
-import dto.passenger.CreatePassengerRequest;
 import dto.passenger.UpdatePassengerRequest;
+import dto.passport.PassportDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -18,64 +18,59 @@ import converter.passenger.*;
 import jakarta.ws.rs.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.HttpHelper;
 import service.PassengerService;
-import validation.PassengerValidationService;
+import util.CurrentUserHolder;
+import util.JsonHelper;
+import util.RequestParameterExtractor;
 import validation.RequestParameterValidationService;
+import validation.validator.ValidationService;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import static constant.AttributeName.*;
+import static constant.ServletContextAttributeKey.*;
 
 @WebServlet("/api/v1/passenger")
 @Path("/ticket-app/api/v1/passenger")
 public class PassengerServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(PassengerServlet.class);
-    private HttpHelper httpHelper;
+    private JsonHelper jsonHelper;
     private PassengerService passengerService;
     private RequestParameterExtractor parameterExtractor;
-    private PassengerValidationService passengerValidationService;
-    private CreatePassengerRequestConverter createPassengerRequestConverter;
-    private CreatePassengerResponseConverter createPassengerResponseConverter;
+    private ValidationService validationService;
+    private PassportDtoToPassengerConverter passportDtoToPassengerConverter;
     private PassengerDtoConverter passengerDtoConverter;
     private UpdatePassengerRequestConverter updatePassengerRequestConverter;
-    private UpdatePassengerResponseConverter updatePassengerResponseConverter;
     private RequestParameterValidationService requestParameterValidationService;
-    private PermissionChecker permissionChecker;
-    private SessionAttributeExtractor sessionAttributeExtractor;
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization start", getClass().getSimpleName());
+        log.info("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
-        httpHelper = (HttpHelper) context.getAttribute(HTTP_HELPER);
+        jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
         passengerService = (PassengerService) context.getAttribute(PASSENGER_SERVICE);
         parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
-        passengerValidationService = (PassengerValidationService) context.getAttribute(PASSENGER_VALIDATION_SERVICE);
-        createPassengerRequestConverter =
-                (CreatePassengerRequestConverter) context.getAttribute(CREATE_PASSENGER_REQUEST_CONVERTER);
-        createPassengerResponseConverter =
-                (CreatePassengerResponseConverter) context.getAttribute(CREATE_PASSENGER_RESPONSE_CONVERTER);
+        validationService = (ValidationService) context.getAttribute(PASSENGER_VALIDATION_SERVICE);
+        passportDtoToPassengerConverter =
+                (PassportDtoToPassengerConverter) context.getAttribute(CREATE_PASSENGER_REQUEST_CONVERTER);
+
         passengerDtoConverter = (PassengerDtoConverter) context.getAttribute(PASSENGER_DTO_CONVERTER);
         updatePassengerRequestConverter =
                 (UpdatePassengerRequestConverter) context.getAttribute(UPDATE_PASSENGER_REQUEST_CONVERTER);
-        updatePassengerResponseConverter =
-                (UpdatePassengerResponseConverter) context.getAttribute(UPDATE_PASSENGER_RESPONSE_CONVERTER);
+
         requestParameterValidationService =
                 (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
-        permissionChecker = (PermissionChecker) context.getAttribute(PERMISSION_CHECKER);
-        sessionAttributeExtractor = (SessionAttributeExtractor) context.getAttribute(SESSION_ATTRIBUTE_EXTRACTOR);
 
-        log.info("Servlet {} initialization finish", getClass().getSimpleName());
+        log.info("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @POST
     @Operation(tags = {"Passengers"}, summary = "Создание пассажира",
             description = "Создание пассажира",
             requestBody = @RequestBody(description = "Данные пассажира", required = true,
-                    content = @Content(schema = @Schema(implementation = CreatePassengerRequest.class))),
+                    content = @Content(schema = @Schema(implementation = PassportDto.class))),
             responses = {@ApiResponse(responseCode = "200", description = "Успех"),
                     @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
                     @ApiResponse(responseCode = "401", description = "Не авторизован"),
@@ -85,31 +80,31 @@ public class PassengerServlet extends HttpServlet {
     @Override
     public void doPost(@Parameter(hidden = true) HttpServletRequest req,
                        @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (permissionChecker.isAdmin(req)) {
+        if (CurrentUserHolder.isAdmin()) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
-        var request = httpHelper.getRequestBody(req, CreatePassengerRequest.class);
+        var body = new String(req.getInputStream().readAllBytes());
+        var passportDto = jsonHelper.fromJson(body, PassportDto.class);
 
-        passengerValidationService.validateCreateRequest(request);
+        validationService.validate(passportDto);
 
-        var currentUserId = sessionAttributeExtractor.extractId(req);
-        var passenger = createPassengerRequestConverter.convert(request);
-        passenger.setUserId(currentUserId);
+        var passenger = passportDtoToPassengerConverter.convert(passportDto);
 
-        var savedPassenger = passengerService.save(passenger);
+        var savedPassenger = passengerService.create(passenger);
 
-        var createPassengerResponse = createPassengerResponseConverter.convert(savedPassenger);
+        var createPassengerResponse = passengerDtoConverter.convert(savedPassenger);
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
-        httpHelper.writeResponseBody(resp, createPassengerResponse);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(jsonHelper.toJson(createPassengerResponse).getBytes(StandardCharsets.UTF_8));
     }
 
     @GET
     @Operation(tags = {"Passengers"}, summary = "Получение пассажира или списка пассажиров",
             description = "Если id не передан, возвращает всех пассажиров",
-            parameters = {@Parameter(name = "userId", in = ParameterIn.QUERY, description = "Id пользователя", example = "1",
+            parameters = {@Parameter(name = "passengerId", in = ParameterIn.QUERY, description = "Id пассажира", example = "1",
                     schema = @Schema(type = "integer", format = "int64"))},
             responses = {@ApiResponse(responseCode = "200", description = "Успех"),
                     @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
@@ -119,25 +114,26 @@ public class PassengerServlet extends HttpServlet {
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        var userId = parameterExtractor.extractUserId(req);
-        var currentUserId = sessionAttributeExtractor.extractId(req);
-        boolean isAdmin = permissionChecker.isAdmin(req);
+        var passengerId = parameterExtractor.extractId(req, false);
+        var currentUserId = CurrentUserHolder.getCurrentUserId();
+        boolean isAdmin = CurrentUserHolder.isAdmin();
 
-        boolean hasUserIdParam = req.getParameterMap().containsKey("userId");
-
-        if (hasUserIdParam) {
-            if (isAdmin || (userId != null && userId.equals(currentUserId))) {
-                findAllByUserId(resp, userId);
-            } else {
-                resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            }
+        String responseBodyJson;
+        if (passengerId != null) {
+            var passenger = isAdmin
+                    ? passengerService.findById(passengerId)
+                    : passengerService.findByIdAndUserId(passengerId, currentUserId);
+            responseBodyJson = jsonHelper.toJson(passengerDtoConverter.convert(passenger));
         } else {
-            if (isAdmin) {
-                findAll(resp);
-            } else {
-                findAllByUserId(resp, currentUserId);
-            }
+            var passengers = isAdmin
+                    ? passengerService.findAll()
+                    : passengerService.findAllByUserId(currentUserId);
+            responseBodyJson = jsonHelper.toJson(passengerDtoConverter.convertAll(passengers));
         }
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(responseBodyJson.getBytes(StandardCharsets.UTF_8));
     }
 
     @PUT
@@ -153,25 +149,26 @@ public class PassengerServlet extends HttpServlet {
     @Override
     public void doPut(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (permissionChecker.isAdmin(req)) {
+        if (CurrentUserHolder.isAdmin()) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
             return;
         }
 
-        var request = httpHelper.getRequestBody(req, UpdatePassengerRequest.class);
+        var body = new String(req.getInputStream().readAllBytes());
+        var request = jsonHelper.fromJson(body, UpdatePassengerRequest.class);
 
-        passengerValidationService.validateUpdateRequest(request);
+        validationService.validate(request);
 
         var passenger = updatePassengerRequestConverter.convert(request);
 
-        var currentUserId = sessionAttributeExtractor.extractId(req);
-        var updatedPassenger = passengerService.update(passenger, currentUserId);
+        var updatedPassenger = passengerService.update(passenger);
 
-        var dto = updatePassengerResponseConverter.convert(updatedPassenger);
+        var dto = passengerDtoConverter.convert(updatedPassenger);
 
         resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, dto);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(jsonHelper.toJson(dto).getBytes(StandardCharsets.UTF_8));
     }
 
     @DELETE
@@ -179,7 +176,7 @@ public class PassengerServlet extends HttpServlet {
             description = "Удаление пассажира по id",
             parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "Id пассажира", example = "1",
                     schema = @Schema(type = "integer", format = "int64"))},
-            responses = {@ApiResponse(responseCode = "200", description = "Успех"),
+            responses = {@ApiResponse(responseCode = "204", description = "Успех"),
                     @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
                     @ApiResponse(responseCode = "401", description = "Не авторизован"),
                     @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
@@ -187,39 +184,18 @@ public class PassengerServlet extends HttpServlet {
     @Override
     public void doDelete(@Parameter(hidden = true) HttpServletRequest req,
                          @Parameter(hidden = true) HttpServletResponse resp) {
-        if (permissionChecker.isAdmin(req)) {
+        if (CurrentUserHolder.isAdmin()) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
             return;
         }
 
-        var passengerId = parameterExtractor.extractId(req);
+        var passengerId = parameterExtractor.extractId(req, true);
 
         requestParameterValidationService.validateId(passengerId);
 
-        var userId = sessionAttributeExtractor.extractId(req);
-        passengerService.delete(passengerId, userId);
+        passengerService.delete(passengerId);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
-    }
-
-    private void findAllByUserId(HttpServletResponse resp, Long userId) throws IOException {
-        requestParameterValidationService.validateId(userId);
-
-        var passengers = passengerService.findAllByUserId(userId);
-
-        var dtoResponse = passengerDtoConverter.convertAll(passengers);
-
-        resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, dtoResponse);
-    }
-
-    private void findAll(HttpServletResponse resp) throws IOException {
-        var passengers = passengerService.findAll();
-
-        var passengerDtos = passengerDtoConverter.convertAll(passengers);
-
-        resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, passengerDtos);
+        resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
 }

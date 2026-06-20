@@ -3,8 +3,6 @@ package servlet;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import jakarta.servlet.ServletConfig;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,11 +13,6 @@ import jakarta.ws.rs.Path;
 @WebServlet("/logout")
 @Path("/ticket-app/logout")
 public class LogoutServlet extends HttpServlet {
-    @Override
-    public void init(ServletConfig config) throws ServletException {
-        super.init(config);
-    }
-
     @POST
     @Operation(tags = {"Users"}, summary = "Логаут", description = "Логаут",
             responses = {@ApiResponse(responseCode = "200", description = "Успех"),
@@ -31,6 +24,7 @@ public class LogoutServlet extends HttpServlet {
     @Override
     public void doPost(@Parameter(hidden = true) HttpServletRequest req,
                        @Parameter(hidden = true) HttpServletResponse resp) {
+        resp.setStatus(HttpServletResponse.SC_OK);
         req.getSession().invalidate();
     }
 }

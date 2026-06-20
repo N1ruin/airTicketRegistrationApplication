@@ -1,11 +1,14 @@
 package listener;
 
-import constant.AttributeName;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.MigrationService;
+import org.flywaydb.core.Flyway;
+
+import javax.sql.DataSource;
+
+import static constant.ServletContextAttributeKey.DATA_SOURCE;
 
 public class MigrationContextListener implements ServletContextListener {
     private static final Logger log = LogManager.getLogger(MigrationContextListener.class);
@@ -14,12 +17,17 @@ public class MigrationContextListener implements ServletContextListener {
     public void contextInitialized(ServletContextEvent sce) {
         log.info("Database migration started");
 
-        var context = sce.getServletContext();
+        var dataSource = (DataSource) sce.getServletContext().getAttribute(DATA_SOURCE);
+        applyMigrations(dataSource);
 
-        var migrationService = (MigrationService) context.getAttribute(AttributeName.MIGRATION_SERVICE);
+        log.info("Database migration finished");
+    }
 
-        migrationService.migrate();
-
-        log.info("Database migration finish");
+    private void applyMigrations(DataSource dataSource) {
+        Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
     }
 }

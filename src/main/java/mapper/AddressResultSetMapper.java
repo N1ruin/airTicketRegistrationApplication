@@ -6,13 +6,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
 
-public class AddressResultSetMapper implements ResultSetMapper<Optional<Address>> {
+public class AddressResultSetMapper implements ResultSetMapper<Address> {
     @Override
-    public Optional<Address> map(ResultSet resultSet) throws SQLException {
-        return mapRow(resultSet);
-    }
-
-    private Optional<Address> mapRow(ResultSet resultSet) throws SQLException {
+    public Optional<Address> mapRow(ResultSet resultSet) throws SQLException {
         var address = new Address();
 
         address.setId(resultSet.getLong("address_id"));

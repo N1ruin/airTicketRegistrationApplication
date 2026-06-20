@@ -3,7 +3,7 @@ package service;
 import domain.Flight;
 import exception.EntityNotFoundException;
 import repository.FlightRepository;
-import repository.TransactionHelper;
+import util.TransactionHelper;
 
 import java.util.List;
 
@@ -19,58 +19,38 @@ public class FlightService {
         this.airportService = airportService;
     }
 
-    public Flight save(Flight flight) {
-        return saveTransactional(flight);
-    }
-
-    public Flight findById(Long id) {
-        return findByIdTransactional(id);
-    }
-
-    public List<Flight> findAll() {
-        return findAllTransactional();
-    }
-
-    public Flight update(Flight flight) {
-        return updateTransactional(flight);
-    }
-
-    public void delete(Long id) {
-        deleteTransactional(id);
-    }
-
-    private Flight saveTransactional(Flight flight) {
+    public Flight create(Flight flight) {
         return transactionHelper.executeInTransaction(() -> {
-            var departureAirportCode = flight.getDepartureAirport().getCode();
-            var departureAirport = airportService.findByCode(departureAirportCode);
+            airportService.findById(flight.getDepartureAirportCode());
+            airportService.findById(flight.getArrivalAirportCode());
 
-            var arrivalAirportCode = flight.getArrivalAirport().getCode();
-            var arrivalAirport = airportService.findByCode(arrivalAirportCode);
-
-            flight.setDepartureAirport(departureAirport);
-            flight.setArrivalAirport(arrivalAirport);
-
-            return flightRepository.save(flight);
+            return flightRepository.create(flight);
         });
     }
 
-    private Flight findByIdTransactional(Long id) {
-        return transactionHelper.executeInTransaction(() -> flightRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Flight with id %d not found".formatted(id))));
+    public Flight findById(Long id) {
+        return flightRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Flight not found. ID: %d".formatted(id)));
     }
 
-    private List<Flight> findAllTransactional() {
-        return transactionHelper.executeInTransaction(flightRepository::findAll);
+    public List<Flight> findAll() {
+        return flightRepository.findAll();
     }
 
-    private Flight updateTransactional(Flight flight) {
+    public Flight update(Flight flight) {
         return transactionHelper.executeInTransaction(() -> {
-            var existedFlight = findByIdTransactional(flight.getId());
-            var existedDepartureAirport = airportService.findByCode(flight.getDepartureAirport().getCode());
-            var existedArrivalAirport = airportService.findByCode(flight.getArrivalAirport().getCode());
+            var existedFlight = findById(flight.getId());
 
-            existedFlight.setDepartureAirport(existedDepartureAirport);
-            existedFlight.setArrivalAirport(existedArrivalAirport);
+            if (isAirportCodeChange(existedFlight.getDepartureAirportCode(), flight.getDepartureAirportCode())) {
+                airportService.findById(flight.getDepartureAirportCode());
+                existedFlight.setDepartureAirportCode(flight.getDepartureAirportCode());
+            }
+
+            if (isAirportCodeChange(existedFlight.getArrivalAirportCode(), flight.getArrivalAirportCode())) {
+                airportService.findById(flight.getArrivalAirportCode());
+                existedFlight.setArrivalAirportCode(flight.getArrivalAirportCode());
+            }
+
             existedFlight.setFreeSeats(flight.getFreeSeats());
             existedFlight.setAllSeats(flight.getAllSeats());
             existedFlight.setDepartureDate(flight.getDepartureDate());
@@ -80,12 +60,15 @@ public class FlightService {
         });
     }
 
-    private void deleteTransactional(Long id) {
+    public void delete(Long id) {
         transactionHelper.executeInTransaction(() -> {
-            flightRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Flight with %d not found".formatted(id)));
+            findById(id);
 
             flightRepository.deleteById(id);
         });
+    }
+
+    private boolean isAirportCodeChange(String oldCode, String newCode) {
+        return !oldCode.equals(newCode);
     }
 }

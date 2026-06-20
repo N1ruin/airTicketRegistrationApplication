@@ -1,88 +1,79 @@
 package unit.converter.ticket;
 
-import converter.flight.FlightConverter;
-import converter.passenger.PassengerDtoConverter;
 import converter.ticket.TicketDtoConverter;
 import domain.*;
-import dto.flight.FlightDto;
-import dto.passenger.PassengerDto;
-import dto.ticket.TicketDto;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class TicketDtoConverterTest {
-    @Mock
-    private FlightConverter flightConverter;
-    @Mock
-    private PassengerDtoConverter passengerDtoConverter;
-    @InjectMocks
-    @Spy
-    private TicketDtoConverter ticketDtoConverter;
+    private final TicketDtoConverter ticketDtoConverter = new TicketDtoConverter();
 
     @Test
     void convertTicketToTicketDtoSuccess() {
-        var purchaseDate = LocalDateTime.now();
-        var flightMock = mock(Flight.class);
-        var flightDtoMock = mock(FlightDto.class);
-        var passengerMock = mock(Passenger.class);
-        var passengerDtoMock = mock(PassengerDto.class);
+        var purchaseDate = ZonedDateTime.now();
         var ticket = new Ticket();
         ticket.setId(1L);
-        ticket.setTicketNumber(1L);
-        ticket.setTicketStatus(TicketStatus.ACTIVE);
-        ticket.setServiceClass(ServiceClass.STANDARD);
+        ticket.setTicketNumber(123L);
+        ticket.setTicketStatus(TicketStatus.CONFIRMED);
+        ticket.setTicketRank(TicketRank.STANDARD);
         ticket.setSeatNumber(12);
+        ticket.setFlightId(1L);
+        ticket.setPassengerId(2L);
         ticket.setBaggageWeight(10.0);
         ticket.setCarryOnBaggageWeight(5.0);
         ticket.setPurchaseDate(purchaseDate);
-        ticket.setFlight(flightMock);
-        ticket.setPassenger(passengerMock);
-        when(passengerDtoConverter.convert(passengerMock)).thenReturn(passengerDtoMock);
-        when(flightConverter.convert(flightMock)).thenReturn(flightDtoMock);
 
         var result = ticketDtoConverter.convert(ticket);
 
         assertNotNull(result);
-        assertEquals(1, result.id());
-        assertEquals(TicketStatus.ACTIVE, result.ticketStatus());
-        assertEquals(ServiceClass.STANDARD, result.serviceClass());
-        assertEquals(flightDtoMock, result.flight());
-        assertEquals(passengerDtoMock, result.passenger());
-        assertEquals(1, result.ticketNumber());
+        assertEquals(1L, result.id());
+        assertEquals(TicketStatus.CONFIRMED, result.ticketStatus());
+        assertEquals(123L, result.ticketNumber());
+        assertEquals(TicketRank.STANDARD, result.ticketRank());
         assertEquals(12, result.seatNumber());
+        assertEquals(1L, result.flightId());
+        assertEquals(2L, result.passengerId());
         assertEquals(10.0, result.baggageWeight());
         assertEquals(5.0, result.carryOnBaggageWeight());
         assertEquals(purchaseDate, result.purchaseDate());
-        verify(flightConverter).convert(flightMock);
-        verify(passengerDtoConverter).convert(passengerMock);
     }
 
     @Test
     void convertTicketListToTicketDtoList() {
-        var ticketOne = mock(Ticket.class);
-        var ticketTwo = mock(Ticket.class);
-        var ticketDtoOne = mock(TicketDto.class);
-        var ticketDtoTwo = mock(TicketDto.class);
-        doReturn(ticketDtoOne).when(ticketDtoConverter).convert(ticketOne);
-        doReturn(ticketDtoTwo).when(ticketDtoConverter).convert(ticketTwo);
+        var ticketOne = new Ticket();
+        ticketOne.setId(1L);
+        ticketOne.setTicketNumber(100L);
+        ticketOne.setFlightId(10L);
+        ticketOne.setPassengerId(20L);
+        ticketOne.setTicketRank(TicketRank.STANDARD);
+        ticketOne.setTicketStatus(TicketStatus.CONFIRMED);
+        var ticketTwo = new Ticket();
+        ticketTwo.setId(2L);
+        ticketTwo.setTicketNumber(200L);
+        ticketTwo.setFlightId(30L);
+        ticketTwo.setPassengerId(40L);
+        ticketTwo.setTicketRank(TicketRank.BUSINESS);
+        ticketTwo.setTicketStatus(TicketStatus.PENDING);
 
         var result = ticketDtoConverter.convertAll(List.of(ticketOne, ticketTwo));
 
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals(ticketDtoOne, result.get(0));
-        assertEquals(ticketDtoTwo, result.get(1));
-        verify(ticketDtoConverter, times(2)).convert(any());
+        assertEquals(1L, result.getFirst().id());
+        assertEquals(100L, result.getFirst().ticketNumber());
+        assertEquals(10L, result.getFirst().flightId());
+        assertEquals(20L, result.getFirst().passengerId());
+        assertEquals(TicketRank.STANDARD, result.get(0).ticketRank());
+        assertEquals(TicketStatus.CONFIRMED, result.get(0).ticketStatus());
+        assertEquals(2L, result.get(1).id());
+        assertEquals(200L, result.get(1).ticketNumber());
+        assertEquals(30L, result.get(1).flightId());
+        assertEquals(40L, result.get(1).passengerId());
+        assertEquals(TicketRank.BUSINESS, result.get(1).ticketRank());
+        assertEquals(TicketStatus.PENDING, result.get(1).ticketStatus());
     }
 }

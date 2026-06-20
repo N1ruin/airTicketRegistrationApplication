@@ -16,9 +16,8 @@ public class UpdateAirportRequestConverter implements Converter<UpdateAirportReq
     public Airport convert(UpdateAirportRequest request) {
         var airport = new Airport();
 
-        airport.setId(request.id());
         airport.setName(request.name());
-        airport.setCode(request.code());
+        airport.setWorked(request.isWorked());
 
         var address = addressDtoConverter.convert(request.addressDto());
         airport.setAddress(address);

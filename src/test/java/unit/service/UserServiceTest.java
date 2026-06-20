@@ -3,7 +3,6 @@ package unit.service;
 import converter.user.UserDtoConverter;
 import domain.Role;
 import domain.User;
-import dto.user.UserDto;
 import exception.EntityNotFoundException;
 import exception.InvalidCredentialsException;
 import exception.UserAlreadyExistException;
@@ -13,10 +12,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import repository.TransactionHelper;
 import repository.UserRepository;
-import sequrity.PasswordEncoder;
+import security.PasswordEncoder;
 import service.UserService;
+import util.CurrentUserHolder;
+import util.TransactionHelper;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +41,8 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
+        CurrentUserHolder.setCurrentUserId(1L);
+        CurrentUserHolder.setCurrentUserRole(Role.USER);
         lenient().when(transactionHelper.executeInTransaction(any(Supplier.class)))
                 .thenAnswer(invocationOnMock -> ((Supplier<?>) invocationOnMock.getArgument(0)).get());
 
@@ -54,20 +56,17 @@ class UserServiceTest {
     @Test
     void signUpSuccess() {
         var user = getUser();
-        when(userRepository.save(user)).thenReturn(user);
+        when(userRepository.create(user)).thenReturn(user);
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
 
-        var result = userService.signUp(user);
+        var result = userService.signUp(user, Role.USER);
 
         assertNotNull(result);
         assertEquals("email", user.getEmail());
-        assertEquals("FirstName", result.getFirstName());
-        assertEquals("LastName", result.getLastName());
-        assertEquals("FatherName", result.getFatherName());
         assertEquals(Role.USER, result.getRole());
         assertFalse(result.isBlocked());
         verify(userRepository).findByEmail(user.getEmail());
-        verify(userRepository).save(user);
+        verify(userRepository).create(user);
     }
 
     @Test
@@ -75,7 +74,7 @@ class UserServiceTest {
         var user = getUser();
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(new User()));
 
-        assertThrows(UserAlreadyExistException.class, () -> userService.signUp(user));
+        assertThrows(UserAlreadyExistException.class, () -> userService.signUp(user, Role.USER));
 
         verify(userRepository).findByEmail(user.getEmail());
     }
@@ -83,20 +82,17 @@ class UserServiceTest {
     @Test
     void signUpAdminSuccess() {
         var user = getUser();
-        when(userRepository.save(user)).thenReturn(user);
+        when(userRepository.create(user)).thenReturn(user);
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
 
-        var result = userService.signUpAdmin(user);
+        var result = userService.signUp(user, Role.ADMIN);
 
         assertNotNull(result);
         assertEquals("email", user.getEmail());
-        assertEquals("FirstName", result.getFirstName());
-        assertEquals("LastName", result.getLastName());
-        assertEquals("FatherName", result.getFatherName());
         assertEquals(Role.ADMIN, result.getRole());
         assertFalse(result.isBlocked());
         verify(userRepository).findByEmail(user.getEmail());
-        verify(userRepository).save(user);
+        verify(userRepository).create(user);
     }
 
     @Test
@@ -104,7 +100,7 @@ class UserServiceTest {
         var user = getUser();
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(new User()));
 
-        assertThrows(UserAlreadyExistException.class, () -> userService.signUpAdmin(user));
+        assertThrows(UserAlreadyExistException.class, () -> userService.signUp(user, Role.ADMIN));
 
         verify(userRepository).findByEmail(user.getEmail());
     }
@@ -112,19 +108,26 @@ class UserServiceTest {
     @Test
     void signInSuccess() {
         var user = getUser();
+        user.setId(1L);
         user.setPasswordHash("passwordHash");
         var password = "testpassword";
+        user.setRole(Role.USER);
+        user.setBlocked(false);
+
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
         when(passwordEncoder.verify(password, user.getPasswordHash())).thenReturn(true);
-        when(userDtoConverter.convert(user)).thenReturn(new UserDto(null, null, null, null,
-                null, null, false));
+        when(userRepository.update(user)).thenReturn(user);
 
         var result = userService.signIn(user.getEmail(), password);
 
         assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("email", result.getEmail());
+        assertEquals(Role.USER, result.getRole());
+        assertFalse(result.isBlocked());
         verify(userRepository).findByEmail(user.getEmail());
         verify(passwordEncoder).verify(password, user.getPasswordHash());
-        verify(userDtoConverter).convert(user);
+        verify(userRepository).update(user);
     }
 
     @Test
@@ -262,12 +265,61 @@ class UserServiceTest {
         verify(userRepository, times(0)).update(user);
     }
 
+    @Test
+    void findByIdSuccess() {
+        var user = getUser();
+        user.setId(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        var result = userService.findById(1L);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        verify(userRepository).findById(1L);
+    }
+
+    @Test
+    void findByIdThrowsEntityNotFoundException() {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> userService.findById(999L));
+        verify(userRepository).findById(999L);
+    }
+
+    @Test
+    void updateSuccess() {
+        var user = getUser();
+        user.setId(1L);
+        user.setPasswordHash("oldHash");
+        var newPassword = "newPassword123";
+        var newHash = "newHash";
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(newPassword)).thenReturn(newHash);
+        when(userRepository.update(user)).thenReturn(user);
+
+        var result = userService.update(newPassword);
+
+        assertNotNull(result);
+        assertEquals(newHash, result.getPasswordHash());
+        verify(userRepository).findById(1L);
+        verify(passwordEncoder).encode(newPassword);
+        verify(userRepository).update(user);
+    }
+
+    @Test
+    void updateThrowsEntityNotFoundExceptionWhenUserNotFound() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> userService.update("newPass"));
+        verify(userRepository).findById(1L);
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).update(any());
+    }
+
     private User getUser() {
         var user = new User();
         user.setEmail("email");
-        user.setFirstName("FirstName");
-        user.setLastName("LastName");
-        user.setFatherName("FatherName");
 
         return user;
     }

@@ -1,14 +1,16 @@
 package service;
 
+import domain.Flight;
 import domain.Ticket;
 import domain.TicketStatus;
 import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
 import exception.ValidationException;
 import repository.TicketRepository;
-import repository.TransactionHelper;
+import util.CurrentUserHolder;
+import util.TransactionHelper;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 public class TicketService {
@@ -28,114 +30,102 @@ public class TicketService {
         this.flightService = flightService;
     }
 
-    public Ticket save(Ticket ticket, Long currentUserId) {
-        return saveTransactional(ticket, currentUserId);
-    }
-
-    public List<Ticket> findAll() {
-        return findAllTransactional();
-    }
-
-    public List<Ticket> findAllByUserId(Long userId) {
-        return findAllByUserIdTransactional(userId);
-    }
-
-    public void refund(Long id, Long userId) {
-        refundTransactional(id, userId);
-    }
-
-    public void refund(Long id) {
-        refundTransactional(id);
-    }
-
-    public List<Ticket> findAllActualByUserId(Long currentUserId) {
-        return findAllActualByUserIdTransactional(currentUserId);
-    }
-
-    private Ticket saveTransactional(Ticket ticket, Long currentUserId) {
+    public Ticket create(Ticket ticket) {
         return transactionHelper.executeInTransaction(() -> {
-            var flightId = ticket.getFlight().getId();
-            var passengerId = ticket.getPassenger().getId();
+            var flightId = ticket.getFlightId();
+            var passengerId = ticket.getPassengerId();
+            var currentUserId = CurrentUserHolder.getCurrentUserId();
 
-            var passenger = passengerService.findById(passengerId);
-            if (!passenger.getUserId().equals(currentUserId)) {
-                throw new ValidationException("You can only purchase tickets for your own passengers");
-            }
-            ticketRepository.findByFlightIdAndPassengerId(flightId, passengerId)
-                    .ifPresent(existingTicket -> {
-                        if (existingTicket.getTicketStatus() == TicketStatus.ACTIVE) {
-                            throw new EntityAlreadyExistException("The passenger already has an active ticket for this flight");
-                        }
-                    });
+            passengerService.findByIdAndUserId(passengerId, currentUserId);
 
-            var flight = ticket.getFlight();
-            var freeSeats = flight.getFreeSeats();
+            checkActiveTicket(flightId, passengerId);
 
-            if (freeSeats <= 0) {
-                throw new ValidationException("No free seats available for this flight");
-            }
+            var flight = flightService.findById(flightId);
 
-            ticketRepository.findByFlightIdAndSeatNumber(ticket.getFlight().getId(), ticket.getSeatNumber())
-                    .ifPresent(exsistedTicket -> {
-                        throw new EntityAlreadyExistException("Seat %d is already taken".formatted(ticket.getSeatNumber()));
-                    });
+            checkHasFreeSeats(flight);
+            checkSeatAvailable(flightId, ticket.getSeatNumber());
 
             flight.setFreeSeats(flight.getFreeSeats() - 1);
             flightService.update(flight);
-            ticket.setTicketStatus(TicketStatus.ACTIVE);
+            ticket.setTicketStatus(TicketStatus.PENDING);
 
-            passengerService.updateFavoriteAirports(passengerId, ticket.getFlight().getDepartureAirport().getCode());
-            ticket.setPurchaseDate(LocalDateTime.now());
-            return ticketRepository.save(ticket);
+            passengerService.addFavoriteAirport(passengerId, flight.getDepartureAirportCode());
+            ticket.setPurchaseDate(ZonedDateTime.now());
+
+            return ticketRepository.create(ticket);
         });
     }
 
-    private List<Ticket> findAllTransactional() {
-        return transactionHelper.executeInTransaction(ticketRepository::findAll);
+    public List<Ticket> findAll() {
+        return ticketRepository.findAll();
     }
 
-    private List<Ticket> findAllByUserIdTransactional(Long userId) {
-        return transactionHelper.executeInTransaction(() -> ticketRepository.findAllByUserId(userId));
+    public List<Ticket> findAllByCurrentUserId() {
+        return ticketRepository.findAllByUserId(CurrentUserHolder.getCurrentUserId());
     }
 
-    private void refundTransactional(Long id, Long userId) {
+    public void refundByCurrentUser(Long id) {
         transactionHelper.executeInTransaction(() -> {
+            var currentUserId = CurrentUserHolder.getCurrentUserId();
+            var ticket = ticketRepository.findByIdAndCurrentUserId(id, currentUserId)
+                    .orElseThrow(() -> new EntityNotFoundException("Ticket not found. ID: %d".formatted(id)));
 
-
-            var ticket = ticketRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Ticket with id %d not found".formatted(id)));
-
-            if (!ticket.getPassenger().getUserId().equals(userId)) {
-                throw new ValidationException("Ticket is not linked to the current user");
-            }
+            passengerService.findByIdAndUserId(ticket.getPassengerId(), currentUserId);
 
             processRefund(ticket);
         });
     }
 
-    private void refundTransactional(Long id) {
+    public void refund(Long id) {
         transactionHelper.executeInTransaction(() -> {
             var ticket = ticketRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Ticket with id %d not found".formatted(id)));
+                    .orElseThrow(() -> new EntityNotFoundException("Ticket not found. ID: %d".formatted(id)));
 
             processRefund(ticket);
         });
+    }
+
+    public List<Ticket> findAllActualByUserId() {
+        return ticketRepository.findAllActualByUserId(CurrentUserHolder.getCurrentUserId());
+    }
+
+    private void checkActiveTicket(Long flightId, Long passengerId) {
+        ticketRepository.findByFlightIdAndPassengerId(flightId, passengerId)
+                .filter(existing -> existing.getTicketStatus() != TicketStatus.REFUNDED)
+                .ifPresent(existing -> {
+                    throw new EntityAlreadyExistException("Passenger already has an active ticket for this flight");
+                });
+    }
+
+    private void checkSeatAvailable(Long flightId, Integer seatNumber) {
+        ticketRepository.findByFlightIdAndSeatNumber(flightId, seatNumber)
+                .ifPresent(existing -> {
+                    throw new EntityAlreadyExistException("Seat is already taken. Number: %d"
+                            .formatted(seatNumber));
+                });
+    }
+
+    private void checkHasFreeSeats(Flight flight) {
+        var freeSeats = flight.getFreeSeats();
+
+        if (freeSeats <= 0) {
+            throw new ValidationException("No free seats available for this flight");
+        }
     }
 
     private void processRefund(Ticket ticket) {
         ticket.setTicketStatus(TicketStatus.REFUNDED);
-        ticketRepository.deleteById(ticket.getId());
+        ticketRepository.update(ticket);
 
-        var passengerId = ticket.getPassenger().getId();
-        var airport = airportService.findByCode(ticket.getFlight().getDepartureAirport().getCode());
-        passengerService.refundFavoriteAirport(passengerId, airport.getId());
+        var passengerId = ticket.getPassengerId();
 
-        var flight = ticket.getFlight();
+        var flight = flightService.findById(ticket.getFlightId());
+
+        var airport = airportService.findById(flight.getDepartureAirportCode());
+        passengerService.removeFavoriteAirport(passengerId, airport.getCode());
+
         flight.setFreeSeats(flight.getFreeSeats() + 1);
         flightService.update(flight);
     }
 
-    private List<Ticket> findAllActualByUserIdTransactional(Long currentUserId) {
-        return transactionHelper.executeInTransaction(() -> ticketRepository.findAllActualByUserId(currentUserId));
-    }
 }

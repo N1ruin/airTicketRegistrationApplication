@@ -4,7 +4,7 @@ import domain.Address;
 import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
 import repository.AddressRepository;
-import repository.TransactionHelper;
+import util.TransactionHelper;
 
 public class AddressService {
     private final TransactionHelper transactionHelper;
@@ -15,30 +15,24 @@ public class AddressService {
         this.addressRepository = addressRepository;
     }
 
-    public Address save(Address address) {
-        return saveTransactional(address);
-    }
-
-    private Address saveTransactional(Address address) {
+    public Address create(Address address) {
         return transactionHelper.executeInTransaction(() -> {
             var existingAddress = addressRepository.findByCountryAndCityAndStreetAndHouseNumber(address);
             if (existingAddress.isPresent()) {
-                throw new EntityAlreadyExistException("There is already an airport at address");
+                var existing = existingAddress.get();
+                throw new EntityAlreadyExistException("There is already an airport at address %s %s %s %s"
+                        .formatted(existing.getCountry(), existing.getCity(), existing.getStreet(), existing.getHouseNumber()));
             }
 
-            return addressRepository.save(address);
+            return addressRepository.create(address);
         });
     }
 
-    public Address update(Address address, Long airportId) {
-        return updateTransactional(address, airportId);
-    }
-
-    private Address updateTransactional(Address address, Long airportId) {
+    public Address update(Address address) {
         return transactionHelper.executeInTransaction(() -> {
-            var existing = addressRepository.findByAirportId(airportId)
-                    .orElseThrow(() -> new EntityNotFoundException("Address with airport id %d not found"
-                            .formatted(airportId)));
+            var existing = addressRepository.findById(address.getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Address not found. Id: %s"
+                            .formatted(address.getId())));
 
             existing.setCountry(address.getCountry());
             existing.setCity(address.getCity());

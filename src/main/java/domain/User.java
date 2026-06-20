@@ -6,9 +6,6 @@ public class User {
     private Long id;
     private String email;
     private String passwordHash;
-    private String firstName;
-    private String lastName;
-    private String fatherName;
     private Role role;
     private LocalDateTime lastLogin;
     private boolean isBlocked;
@@ -35,30 +32,6 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getFatherName() {
-        return fatherName;
-    }
-
-    public void setFatherName(String fatherName) {
-        this.fatherName = fatherName;
     }
 
     public Role getRole() {

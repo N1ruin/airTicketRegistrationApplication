@@ -15,7 +15,7 @@ class AddressDtoConverterTest {
         var city = "Химки";
         var street = "Шереметьевское шоссе";
         var houseNumber = 37;
-        AddressDto dto = new AddressDto(country, city, street, houseNumber);
+        var dto = new AddressDto(country, city, street, houseNumber);
 
         var result = converter.convert(dto);
 

@@ -1,5 +1,6 @@
 package filter;
 
+import dto.error.ErrorDto;
 import exception.*;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
@@ -7,41 +8,34 @@ import jakarta.servlet.http.HttpFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.HttpHelper;
+import util.JsonHelper;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
 
-import static constant.AttributeName.HTTP_HELPER;
+import static constant.ServletContextAttributeKey.JSON_HELPER;
 import static jakarta.servlet.http.HttpServletResponse.*;
 
 @WebFilter("/*")
 public class GlobalExceptionHandlerFilter extends HttpFilter {
     private static final Logger log = LogManager.getLogger(GlobalExceptionHandlerFilter.class);
-    private HttpHelper httpHelper;
+    private JsonHelper jsonHelper;
 
     @Override
     public void init(FilterConfig config) {
         var context = config.getServletContext();
 
-        httpHelper = (HttpHelper) context.getAttribute(HTTP_HELPER);
+        jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
     }
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException {
         try {
             chain.doFilter(req, res);
-        } catch (ValidationException | IOException e) {
-            handleException(res, SC_BAD_REQUEST, e);
-        } catch (EntityNotFoundException e) {
-            handleException(res, SC_NOT_FOUND, e);
-        } catch (EntityAlreadyExistException e) {
-            handleException(res, SC_CONFLICT, e);
-        } catch (InvalidCredentialsException | DontHavePermissionException e) {
-            handleException(res, SC_UNAUTHORIZED, e);
-        } catch (UserAlreadyAuthenticatedException e) {
-            handleException(res, SC_FORBIDDEN, e);
         } catch (Exception e) {
-            handleException(res, SC_INTERNAL_SERVER_ERROR, e);
+            int status = determineStatus(e);
+            handleException(res, status, e);
         }
     }
 
@@ -51,12 +45,36 @@ public class GlobalExceptionHandlerFilter extends HttpFilter {
         var response = (HttpServletResponse) res;
         response.setStatus(status);
 
-        String errorMessage = throwable.getMessage();
-        if (errorMessage == null) {
-            errorMessage = "Internal Error: " + throwable.getClass().getName() +
-                    " (check server logs for details)";
+        if (status >= 500) {
+            log.error("Internal server error: ", throwable);
+        } else {
+            log.warn("Client error. Status: {}, message: {}", status, throwable.getMessage());
         }
 
-        httpHelper.writeResponseBody(response, errorMessage);
+        var errorMessage = throwable.getMessage();
+        if (errorMessage == null) {
+            errorMessage = status >= 500 ? "Internal server error" : "Error occurred";
+        }
+
+        if (throwable instanceof RepositoryException && throwable.getCause() != null) {
+            log.debug("SQL error cause: {}", throwable.getCause().getMessage());
+        }
+
+        res.setContentType("application/json");
+        var errorDto = new ErrorDto(status, errorMessage, ZonedDateTime.now());
+        res.getOutputStream().write(jsonHelper.toJson(errorDto).getBytes(StandardCharsets.UTF_8));
+    }
+
+    private int determineStatus(Exception e) {
+        return switch (e) {
+            case ValidationException ignored -> SC_BAD_REQUEST;
+            case IOException ignored -> SC_BAD_REQUEST;
+            case EntityNotFoundException ignored -> SC_NOT_FOUND;
+            case EntityAlreadyExistException ignored -> SC_CONFLICT;
+            case InvalidCredentialsException ignored -> SC_UNAUTHORIZED;
+            case AccessDeniedException ignored -> SC_FORBIDDEN;
+            case UserAlreadyAuthenticatedException ignored -> SC_FORBIDDEN;
+            default -> SC_INTERNAL_SERVER_ERROR;
+        };
     }
 }

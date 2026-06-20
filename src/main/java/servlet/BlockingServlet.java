@@ -11,14 +11,15 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.UserService;
+import util.RequestParameterExtractor;
 import validation.RequestParameterValidationService;
 
-import static constant.AttributeName.*;
+import static constant.ServletContextAttributeKey.*;
 
 @WebServlet("/admin/block")
 @Path("/ticket-app/admin/block")
@@ -30,7 +31,7 @@ public class BlockingServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        log.info("Servlet {} initialization start", getClass().getSimpleName());
+        log.info("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
@@ -39,7 +40,7 @@ public class BlockingServlet extends HttpServlet {
         requestParameterValidationService =
                 (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
 
-        log.info("Servlet {} initialization finish", getClass().getSimpleName());
+        log.info("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @Operation(tags = {"Users"}, summary = "Блокировка пользователя по id (инвалидация сессии)",
@@ -51,11 +52,11 @@ public class BlockingServlet extends HttpServlet {
                     @ApiResponse(responseCode = "401", description = "Не авторизован"),
                     @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
                     @ApiResponse(responseCode = "404", description = "Пользователь не найден")})
-    @PUT
+    @PATCH
     @Override
-    public void doPut(@Parameter(hidden = true) HttpServletRequest req,
+    public void doPatch(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) {
-        var id = requestParameterExtractor.extractId(req);
+        var id = requestParameterExtractor.extractId(req, true);
 
         requestParameterValidationService.validateId(id);
 

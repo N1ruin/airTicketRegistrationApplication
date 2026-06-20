@@ -1,17 +1,17 @@
 package domain;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 public class Ticket {
     private Long id;
     private Long ticketNumber;
     private TicketStatus ticketStatus;
-    private ServiceClass serviceClass;
+    private TicketRank ticketRank;
     private Integer seatNumber;
-    private Flight flight;
-    private Passenger passenger;
-    private LocalDateTime purchaseDate;
-    private LocalDateTime updatedDate;
+    private Long flightId;
+    private Long passengerId;
+    private ZonedDateTime purchaseDate;
+    private ZonedDateTime updatedDate;
     private Double baggageWeight;
     private Double carryOnBaggageWeight;
 
@@ -31,12 +31,12 @@ public class Ticket {
         this.ticketNumber = ticketNumber;
     }
 
-    public ServiceClass getServiceClass() {
-        return serviceClass;
+    public TicketRank getTicketRank() {
+        return ticketRank;
     }
 
-    public void setServiceClass(ServiceClass serviceClass) {
-        this.serviceClass = serviceClass;
+    public void setTicketRank(TicketRank ticketRank) {
+        this.ticketRank = ticketRank;
     }
 
     public Integer getSeatNumber() {
@@ -47,27 +47,11 @@ public class Ticket {
         this.seatNumber = seatNumber;
     }
 
-    public Flight getFlight() {
-        return flight;
-    }
-
-    public void setFlight(Flight flight) {
-        this.flight = flight;
-    }
-
-    public Passenger getPassenger() {
-        return passenger;
-    }
-
-    public void setPassenger(Passenger passenger) {
-        this.passenger = passenger;
-    }
-
-    public LocalDateTime getPurchaseDate() {
+    public ZonedDateTime getPurchaseDate() {
         return purchaseDate;
     }
 
-    public void setPurchaseDate(LocalDateTime purchaseDate) {
+    public void setPurchaseDate(ZonedDateTime purchaseDate) {
         this.purchaseDate = purchaseDate;
     }
 
@@ -95,11 +79,27 @@ public class Ticket {
         this.ticketStatus = ticketStatus;
     }
 
-    public LocalDateTime getUpdatedDate() {
+    public ZonedDateTime getUpdatedDate() {
         return updatedDate;
     }
 
-    public void setUpdatedDate(LocalDateTime updatedDate) {
+    public void setUpdatedDate(ZonedDateTime updatedDate) {
         this.updatedDate = updatedDate;
+    }
+
+    public Long getFlightId() {
+        return flightId;
+    }
+
+    public void setFlightId(Long flightId) {
+        this.flightId = flightId;
+    }
+
+    public Long getPassengerId() {
+        return passengerId;
+    }
+
+    public void setPassengerId(Long passengerId) {
+        this.passengerId = passengerId;
     }
 }

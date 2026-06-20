@@ -13,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class UpdateAirportRequestConverterTest {
@@ -23,19 +22,18 @@ class UpdateAirportRequestConverterTest {
     private UpdateAirportRequestConverter converter;
 
     @Test
-    void convertAirportToDtoSuccess() {
+    void convertUpdateAirportRequestToAirportSuccess() {
         var addressMock = mock(Address.class);
         var addressDtoMock = mock(AddressDto.class);
-        var request = new UpdateAirportRequest(1L, "SVO", "Шереметьево", addressDtoMock);
+        var request = new UpdateAirportRequest("Шереметьево", true, addressDtoMock);
 
         when(addressDtoConverter.convert(addressDtoMock)).thenReturn(addressMock);
 
         var result = converter.convert(request);
 
         assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals("SVO", result.getCode());
         assertEquals("Шереметьево", result.getName());
+        assertTrue(result.isWorked());
         assertEquals(addressMock, result.getAddress());
         verify(addressDtoConverter).convert(addressDtoMock);
     }

@@ -12,179 +12,181 @@ import converter.passenger.*;
 import converter.passsport.PassportConverter;
 import converter.passsport.PassportDtoConverter;
 import converter.ticket.CreateTicketRequestConverter;
-import converter.ticket.CreateTicketResponseConverter;
 import converter.ticket.TicketDtoConverter;
 import converter.user.UserDtoConverter;
 import converter.user.UserSignUpRequestConverter;
-import converter.user.UserSignUpResponseConverter;
-import converter.user.UserUpdateResponseConverter;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import mapper.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import repository.ConnectionHelper;
-import repository.TransactionHelper;
+import util.ConnectionHelper;
+import util.TransactionHelper;
 import repository.impl.*;
-import sequrity.PasswordEncoder;
+import security.PasswordEncoder;
 import service.*;
-import servlet.PermissionChecker;
-import servlet.RequestParameterExtractor;
-import servlet.SessionAttributeExtractor;
+import util.RequestParameterExtractor;
+import util.JsonHelper;
 import validation.*;
+import validation.validator.ValidationService;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.Properties;
 
-import static constant.AttributeName.*;
+import static constant.ServletContextAttributeKey.*;
 
 public class InitAttributeServletContextListener implements ServletContextListener {
     private static final String DATASOURCE_PROPERTIES_PATH = "datasource.properties";
     private static final Logger log = LogManager.getLogger(InitAttributeServletContextListener.class);
-    private final Properties properties = new Properties();
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        log.info("Start attribute initialization");
+        log.info("Attribute initialization started");
 
         var context = sce.getServletContext();
 
-        loadProperties();
+        var properties = loadProperties();
+        context.setAttribute(PROPERTIES, properties);
 
-        var dataSource = initHikariDataSource();
+        var dataSource = initHikariDataSource(properties);
         context.setAttribute(DATA_SOURCE, dataSource);
-        var migrationService = new MigrationService(dataSource);
-        context.setAttribute(MIGRATION_SERVICE, migrationService);
-        var passwordEncoder = new PasswordEncoder();
+        var validationService = new ValidationService();
+        context.setAttribute(VALIDATION_SERVICE, validationService);
         var objectMapper = new ObjectMapper();
+        context.setAttribute(OBJECT_MAPPER, objectMapper);
         objectMapper.registerModule(new JavaTimeModule());
-        var httpHelper = new HttpHelper(objectMapper);
-        context.setAttribute(HTTP_HELPER, httpHelper);
+        var jsonUtil = new JsonHelper(objectMapper);
+        context.setAttribute(JSON_HELPER, jsonUtil);
         var connectionHelper = new ConnectionHelper(dataSource);
+        context.setAttribute(CONNECTION_HELPER, connectionHelper);
         var requestParameterExtractor = new RequestParameterExtractor();
         context.setAttribute(REQUEST_PARAMETER_EXTRACTOR, requestParameterExtractor);
         var requestParameterValidationService = new RequestParameterValidationService();
         context.setAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE, requestParameterValidationService);
         var transactionHelper = new TransactionHelper(connectionHelper);
-        var sessionAttributeExtractor = new SessionAttributeExtractor();
-        context.setAttribute(SESSION_ATTRIBUTE_EXTRACTOR, sessionAttributeExtractor);
-        var permissionChecker = new PermissionChecker(sessionAttributeExtractor);
-        context.setAttribute(PERMISSION_CHECKER, permissionChecker);
+        context.setAttribute(TRANSACTION_HELPER, connectionHelper);
 
         var userResultSetMapper = new UserResultSetMapper();
+        context.setAttribute(USER_RESULT_SET_MAPPER, connectionHelper);
         var userRepository = new UserRepositoryImpl(connectionHelper, userResultSetMapper);
+        context.setAttribute(USER_REPOSITORY, connectionHelper);
+        var passwordEncoder = new PasswordEncoder();
+        context.setAttribute(PASSWORD_ENCODER, passwordEncoder);
         var userSignUpRequestConverter = new UserSignUpRequestConverter(passwordEncoder);
         context.setAttribute(USER_SIGN_UP_REQUEST_CONVERTER, userSignUpRequestConverter);
-        var userSignUpResponseConverter = new UserSignUpResponseConverter();
-        context.setAttribute(USER_SIGN_UP_RESPONSE_CONVERTER, userSignUpResponseConverter);
-        var userValidationService = new UserValidationService();
-        context.setAttribute(USER_VALIDATION_SERVICE, userValidationService);
         var userDtoConverter = new UserDtoConverter();
         context.setAttribute(USER_DTO_CONVERTER, userDtoConverter);
-        var userService = new UserService(userRepository, transactionHelper, passwordEncoder, userDtoConverter);
+        var userService = new UserService(userRepository, transactionHelper, passwordEncoder);
         context.setAttribute(USER_SERVICE, userService);
-        var userUpdateResponseConverter = new UserUpdateResponseConverter();
-        context.setAttribute(USER_UPDATE_RESPONSE_CONVERTER, userUpdateResponseConverter);
 
-        var addressValidationService = new AddressValidationService();
-        context.setAttribute(ADDRESS_VALIDATION_SERVICE, addressValidationService);
         var addressResultSetMapper = new AddressResultSetMapper();
+        context.setAttribute(ADDRESS_RESULT_SET_MAPPER, addressResultSetMapper);
         var addressConverter = new AddressConverter();
         context.setAttribute(ADDRESS_CONVERTER, addressConverter);
         var addressDtoConverter = new AddressDtoConverter();
         context.setAttribute(ADDRESS_DTO_CONVERTER, addressDtoConverter);
         var addressRepository = new AddressRepositoryImpl(connectionHelper, addressResultSetMapper);
+        context.setAttribute(ADDRESS_REPOSITORY, connectionHelper);
         var addressService = new AddressService(transactionHelper, addressRepository);
         context.setAttribute(ADDRESS_SERVICE, addressService);
 
-        var airportValidationService =
-                new AirportValidationService(addressValidationService, requestParameterValidationService);
-        context.setAttribute(AIRPORT_VALIDATION_SERVICE, airportValidationService);
         var airportResultSetMapper = new AirportResultSetMapper(addressResultSetMapper);
+        context.setAttribute(AIRPORT_RESULT_SET_MAPPER, connectionHelper);
         var airportRepository = new AirportRepositoryImpl(connectionHelper, airportResultSetMapper);
-        var airportConverter = new AirportConverter(addressConverter);
+        context.setAttribute(AIRPORT_REPOSITORY, connectionHelper);
+        var airportConverter = new AirportConverter();
         context.setAttribute(AIRPORT_CONVERTER, airportConverter);
         var createAirportRequestConverter = new CreateAirportRequestConverter(addressDtoConverter);
         context.setAttribute(CREATE_AIRPORT_REQUEST_CONVERTER, createAirportRequestConverter);
-        var createAirportResponseConverter = new CreateAirportResponseConverter(addressConverter);
-        context.setAttribute(CREATE_AIRPORT_RESPONSE_CONVERTER, createAirportResponseConverter);
         var airportService = new AirportService(addressService, airportRepository, transactionHelper);
         context.setAttribute(AIRPORT_SERVICE, airportService);
         var updateAirportRequestConverter = new UpdateAirportRequestConverter(addressDtoConverter);
         context.setAttribute(UPDATE_AIRPORT_REQUEST_CONVERTER, updateAirportRequestConverter);
-        var updateAirportResponseConverter = new UpdateAirportResponseConverter(addressConverter);
-        context.setAttribute(UPDATE_AIRPORT_RESPONSE_CONVERTER, updateAirportResponseConverter);
-        var airportDtoConverter = new AirportDtoConverter(addressDtoConverter);
-        context.setAttribute(AIRPORT_CONVERTER, airportConverter);
+        var favoriteAirportsRepository = new FavoriteAirportsRepositoryImpl(connectionHelper, airportResultSetMapper);
+        context.setAttribute(FAVORITE_AIRPORTS_REPOSITORY, favoriteAirportsRepository);
 
+        var passportResultSetMapper = new PassportResultSetMapper();
+        context.setAttribute(PASSPORT_RESULT_SET_MAPPER, passportResultSetMapper);
         var passportDtoConverter = new PassportDtoConverter();
         context.setAttribute(PASSPORT_DTO_CONVERTER, passportDtoConverter);
         var passportConverter = new PassportConverter();
         context.setAttribute(PASSPORT_CONVERTER, passportConverter);
-        var passportValidationService = new PassportValidationService();
-        context.setAttribute(PASSPORT_VALIDATION_SERVICE, passportValidationService);
-        var passportResultSetMapper = new PassportResultSetMapper();
+        context.setAttribute(PASSPORT_RESULT_SET_MAPPER, connectionHelper);
         var passportRepository = new PassportRepositoryImpl(connectionHelper, passportResultSetMapper);
+        context.setAttribute(PASSPORT_REPOSITORY, connectionHelper);
         var passportService = new PassportService(transactionHelper, passportRepository);
         context.setAttribute(PASSPORT_SERVICE, passportService);
 
         var passengerResultSetMapper = new PassengerResultSetMapper(passportResultSetMapper);
+        context.setAttribute(PASSENGER_RESULT_SET_MAPPER, connectionHelper);
         var passengerRepository = new PassengerRepositoryImpl(connectionHelper, passengerResultSetMapper);
-        var passengerService = new PassengerService(passengerRepository, airportService, passportService, transactionHelper);
+        context.setAttribute(PASSENGER_REPOSITORY, connectionHelper);
+        var passengerService = new PassengerService(passengerRepository, favoriteAirportsRepository,
+                airportService, passportService, transactionHelper);
         context.setAttribute(PASSENGER_SERVICE, passengerService);
-        var passengerValidationService =
-                new PassengerValidationService(requestParameterValidationService, passportValidationService);
-        context.setAttribute(PASSENGER_VALIDATION_SERVICE, passengerValidationService);
-        var createPassengerRequestConverter = new CreatePassengerRequestConverter(passportConverter);
+        var createPassengerRequestConverter = new PassportDtoToPassengerConverter(passportConverter);
         context.setAttribute(CREATE_PASSENGER_REQUEST_CONVERTER, createPassengerRequestConverter);
-        var passengerDtoConverter = new PassengerDtoConverter(passportDtoConverter);
+        var passengerDtoConverter = new PassengerDtoConverter();
         context.setAttribute(PASSENGER_DTO_CONVERTER, passengerDtoConverter);
-        var createPassengerResponseConverter = new CreatePassengerResponseConverter(passportDtoConverter);
-        context.setAttribute(CREATE_PASSENGER_RESPONSE_CONVERTER, createPassengerResponseConverter);
         var updatePassengerRequestConverter = new UpdatePassengerRequestConverter(passportConverter);
         context.setAttribute(UPDATE_PASSENGER_REQUEST_CONVERTER, updatePassengerRequestConverter);
-        var updatePassengerResponseConverter = new UpdatePassengerResponseConverter(passportDtoConverter);
-        context.setAttribute(UPDATE_PASSENGER_RESPONSE_CONVERTER, updatePassengerResponseConverter);
-        var passengerConverter = new PassengerConverter(passportConverter);
 
-        var createFlightRequestConverter = new CreateFlightRequestConverter(airportDtoConverter);
+        var createFlightRequestConverter = new CreateFlightRequestConverter();
         context.setAttribute(CREATE_FLIGHT_REQUEST_CONVERTER, createFlightRequestConverter);
-        var createFlightResponseConverter = new CreateFlightResponseConverter(airportConverter);
-        context.setAttribute(CREATE_FLIGHT_RESPONSE_CONVERTER, createFlightResponseConverter);
-        var flightDtoConverter = new FlightConverter(airportConverter);
+        var flightDtoConverter = new FlightConverter();
         context.setAttribute(FLIGHT_CONVERTER, flightDtoConverter);
-        var flightValidationService = new FlightValidationService(requestParameterValidationService);
-        context.setAttribute(FLIGHT_VALIDATION_SERVICE, flightValidationService);
-        var updateFlightRequestConverter = new UpdateFlightRequestConverter(airportDtoConverter);
+        var updateFlightRequestConverter = new UpdateFlightRequestConverter();
         context.setAttribute(UPDATE_FLIGHT_REQUEST_CONVERTER, updateFlightRequestConverter);
-        var updateFlightResponseConverter = new UpdateFlightResponseConverter(airportConverter);
-        context.setAttribute(UPDATE_FLIGHT_RESPONSE_CONVERTER, updateFlightResponseConverter);
         var flightResultSetMapper = new FlightResultSetMapper();
+        context.setAttribute(FLIGHT_RESULT_SET_MAPPER, connectionHelper);
         var flightRepository = new FlightRepositoryImpl(flightResultSetMapper, connectionHelper);
+        context.setAttribute(FLIGHT_REPOSITORY, connectionHelper);
         var flightService = new FlightService(flightRepository, transactionHelper, airportService);
         context.setAttribute(FLIGHT_SERVICE, flightService);
-        var flightConverter = new FlightDtoConverter(airportDtoConverter);
 
-        var ticketResultSetMapper = new TicketResultSetMapper(passportResultSetMapper);
+        var ticketResultSetMapper = new TicketResultSetMapper();
+        context.setAttribute(TICKET_RESULT_SET_MAPPER, connectionHelper);
         var ticketRepository = new TicketRepositoryImpl(connectionHelper, ticketResultSetMapper);
+        context.setAttribute(TICKET_REPOSITORY, connectionHelper);
         var ticketService = new TicketService(transactionHelper, ticketRepository, passengerService, airportService,
                 flightService);
         context.setAttribute(TICKET_SERVICE, ticketService);
-        var ticketValidationService = new TicketValidationService();
-        context.setAttribute(TICKET_VALIDATION_SERVICE, ticketValidationService);
-        var createTicketRequestConverter = new CreateTicketRequestConverter(flightConverter, passengerConverter);
+        var createTicketRequestConverter = new CreateTicketRequestConverter();
         context.setAttribute(CREATE_TICKET_REQUEST_CONVERTER, createTicketRequestConverter);
-        var createTicketResponseConverter = new CreateTicketResponseConverter(flightDtoConverter, passengerDtoConverter);
-        context.setAttribute(CREATE_TICKET_RESPONSE_CONVERTER, createTicketResponseConverter);
-        var ticketDtoConverter = new TicketDtoConverter(flightDtoConverter, passengerDtoConverter);
+        var ticketDtoConverter = new TicketDtoConverter();
         context.setAttribute(TICKET_DTO_CONVERTER, ticketDtoConverter);
 
-        log.info("Attribute initialization finish");
+        log.info("Attribute initialization finished");
     }
 
-    private void loadProperties() {
-        log.info("Start properties loading");
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+        log.info("Application destroy started");
+
+        var context = sce.getServletContext();
+
+        log.info("Hikari data source closing started");
+
+        ((HikariDataSource) context.getAttribute(DATA_SOURCE))
+                .close();
+
+        log.info("Hikari data source closing finished");
+
+        log.info("Validator factory closing started");
+
+        ((ValidationService) context.getAttribute(VALIDATION_SERVICE))
+                .close();
+
+        log.info("Validator factory closing finished");
+
+        log.info("Application destroy finished");
+    }
+
+    private Properties loadProperties() {
+        log.info("Start properties loading started");
+
+        var properties = new Properties();
 
         try (var inputStream = getClass()
                 .getClassLoader()
@@ -200,13 +202,17 @@ public class InitAttributeServletContextListener implements ServletContextListen
             throw new RuntimeException(e);
         }
 
-        log.info("Properties loading finish");
+        log.info("Properties loading finished");
+
+        return properties;
     }
 
-    private DataSource initHikariDataSource() {
-        log.info("Start loading hikariCP configuration");
+    private DataSource initHikariDataSource(Properties properties) {
+        log.info("hikariCP configuration loading started");
+
         var config = new HikariConfig(properties);
-        log.info("HikariCP configuration loading finish");
+
+        log.info("HikariCP configuration loading finished");
 
         return new HikariDataSource(config);
     }

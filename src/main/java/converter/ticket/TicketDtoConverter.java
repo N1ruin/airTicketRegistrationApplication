@@ -2,43 +2,31 @@ package converter.ticket;
 
 import domain.Ticket;
 import dto.ticket.TicketDto;
-import converter.ListConverter;
 import converter.Converter;
-import converter.flight.FlightConverter;
-import converter.passenger.PassengerDtoConverter;
 
-import java.util.List;
-
-public class TicketDtoConverter implements Converter<Ticket, TicketDto>, ListConverter<Ticket, TicketDto> {
-    private final FlightConverter flightConverter;
-    private final PassengerDtoConverter passengerDtoConverter;
-
-    public TicketDtoConverter(FlightConverter flightConverter, PassengerDtoConverter passengerDtoConverter) {
-        this.flightConverter = flightConverter;
-        this.passengerDtoConverter = passengerDtoConverter;
-    }
-
+public class TicketDtoConverter implements Converter<Ticket, TicketDto> {
     @Override
     public TicketDto convert(Ticket ticket) {
         var ticketId = ticket.getId();
         var ticketStatus = ticket.getTicketStatus();
         var ticketNumber = ticket.getTicketNumber();
-        var serviceClass = ticket.getServiceClass();
+        var ticketRank = ticket.getTicketRank();
         var seatNumber = ticket.getSeatNumber();
-        var flightDto = flightConverter.convert(ticket.getFlight());
-        var passengerDto = passengerDtoConverter.convert(ticket.getPassenger());
+        var flightId = ticket.getFlightId();
+        var passengerId = ticket.getPassengerId();
         var purchaseDate = ticket.getPurchaseDate();
         var baggageWeight = ticket.getBaggageWeight();
         var carryOnBaggageWeight = ticket.getCarryOnBaggageWeight();
 
-        return new TicketDto(ticketId, ticketStatus, ticketNumber, serviceClass, seatNumber, flightDto, passengerDto,
-                purchaseDate, baggageWeight, carryOnBaggageWeight);
-    }
-
-    @Override
-    public List<TicketDto> convertAll(List<Ticket> tickets) {
-        return tickets.stream()
-                .map(this::convert)
-                .toList();
+        return new TicketDto(ticketId,
+                ticketStatus,
+                ticketNumber,
+                ticketRank,
+                seatNumber,
+                flightId,
+                passengerId,
+                purchaseDate,
+                baggageWeight,
+                carryOnBaggageWeight);
     }
 }

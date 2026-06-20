@@ -1,17 +1,18 @@
 package domain;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 import java.time.LocalDate;
 
 public class Passport {
     private Long id;
     private String series;
     private String number;
+    private String firstName;
+    private String lastName;
+    private String fatherName;
+    private Boolean isMale;
     private String citizenship;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate birthDate;
     private LocalDate issueDate;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate expiredDate;
 
     public Long getId() {
@@ -38,12 +39,44 @@ public class Passport {
         this.number = number;
     }
 
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getFatherName() {
+        return fatherName;
+    }
+
+    public void setFatherName(String fatherName) {
+        this.fatherName = fatherName;
+    }
+
     public String getCitizenship() {
         return citizenship;
     }
 
     public void setCitizenship(String citizenship) {
         this.citizenship = citizenship;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
     }
 
     public LocalDate getIssueDate() {
@@ -61,4 +94,13 @@ public class Passport {
     public void setExpiredDate(LocalDate expiredDate) {
         this.expiredDate = expiredDate;
     }
+
+    public boolean isMale() {
+        return isMale;
+    }
+
+    public void setMale(boolean isMale) {
+        this.isMale = isMale;
+    }
+
 }

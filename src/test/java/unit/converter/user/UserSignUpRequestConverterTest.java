@@ -7,7 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import sequrity.PasswordEncoder;
+import security.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -20,8 +20,7 @@ class UserSignUpRequestConverterTest {
 
     @Test
     void convertRequestToUserSuccess() {
-        var request = new UserSignUpRequest("testemail123@gmail.com", "testpassword123",
-                "FirstName", "LastName", "FatherName");
+        var request = new UserSignUpRequest("testemail123@gmail.com", "testpassword123");
         when(passwordEncoder.encode(request.password())).thenReturn("encodedPass");
 
         var result = converter.convert(request);
@@ -29,8 +28,9 @@ class UserSignUpRequestConverterTest {
         assertNotNull(result);
         assertEquals("testemail123@gmail.com", result.getEmail());
         assertEquals("encodedPass", result.getPasswordHash());
-        assertEquals("FirstName", result.getFirstName());
-        assertEquals("LastName", result.getLastName());
-        assertEquals("FatherName", result.getFatherName());
+        assertNull(result.getId());
+        assertNull(result.getRole());
+        assertFalse(result.isBlocked());
+        assertNull(result.getLastLogin());
     }
 }

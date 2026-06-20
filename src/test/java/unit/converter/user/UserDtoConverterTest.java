@@ -14,9 +14,7 @@ class UserDtoConverterTest {
     void convertUserToUserDtoSuccess() {
         var user = new User();
         user.setId(1L);
-        user.setFirstName("FirstName");
-        user.setLastName("LastName");
-        user.setFatherName("FatherName");
+
         user.setRole(Role.USER);
         user.setBlocked(false);
         user.setEmail("testemail123@gmail.com");
@@ -25,9 +23,6 @@ class UserDtoConverterTest {
 
         assertNotNull(result);
         assertEquals(1L, user.getId());
-        assertEquals("FirstName", result.firstName());
-        assertEquals("LastName", result.lastName());
-        assertEquals("FatherName", result.fatherName());
         assertEquals(Role.USER, result.role());
         assertFalse(result.isBlocked());
         assertEquals("testemail123@gmail.com", result.email());

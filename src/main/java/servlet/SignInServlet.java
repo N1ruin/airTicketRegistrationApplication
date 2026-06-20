@@ -1,5 +1,6 @@
 package servlet;
 
+import converter.user.UserDtoConverter;
 import dto.user.UserAuthenticationRequest;
 import dto.user.UserDto;
 import exception.UserAlreadyAuthenticatedException;
@@ -18,30 +19,31 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.HttpHelper;
 import service.UserService;
+import util.JsonHelper;
 
 import java.io.IOException;
 
-import static constant.AttributeName.HTTP_HELPER;
-import static constant.AttributeName.USER_SERVICE;
+import static constant.ServletContextAttributeKey.*;
 
 @WebServlet("/signin")
 @Path("/ticket-app/signin")
 public class SignInServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(SignInServlet.class);
     private UserService userService;
-    private HttpHelper httpHelper;
+    private JsonHelper jsonHelper;
+    private UserDtoConverter userDtoConverter;
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization start", getClass().getSimpleName());
+        log.info("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
         userService = (UserService) context.getAttribute(USER_SERVICE);
-        httpHelper = (HttpHelper) context.getAttribute(HTTP_HELPER);
+        jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
+        userDtoConverter = (UserDtoConverter) context.getAttribute(USER_DTO_CONVERTER);
 
-        log.info("Servlet {} initialization finish", getClass().getSimpleName());
+        log.info("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @Operation(tags = {"Users"}, summary = "Вход в систему",
@@ -58,14 +60,16 @@ public class SignInServlet extends HttpServlet {
             throw new UserAlreadyAuthenticatedException();
         }
 
-        var authenticationRequest = httpHelper.getRequestBody(req, UserAuthenticationRequest.class);
+        var body = new String(req.getInputStream().readAllBytes());
+        var authenticationRequest = jsonHelper.fromJson(body, UserAuthenticationRequest.class);
 
-        var userDto = userService.signIn(authenticationRequest.email(), authenticationRequest.password());
+        var loggedUser = userService.signIn(authenticationRequest.email(), authenticationRequest.password());
+
+        var userDto = userDtoConverter.convert(loggedUser);
 
         var session = req.getSession();
         session.setAttribute("user", userDto);
 
         resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, userDto);
     }
 }

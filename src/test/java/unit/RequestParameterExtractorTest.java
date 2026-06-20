@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import servlet.RequestParameterExtractor;
+import util.RequestParameterExtractor;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -23,7 +23,7 @@ class RequestParameterExtractorTest {
     void extractIdSuccess() {
         when(request.getParameter("id")).thenReturn("1");
 
-        var result = requestParameterExtractor.extractId(request);
+        var result = requestParameterExtractor.extractId(request, true);
 
         assertEquals(1L, result);
     }
@@ -32,16 +32,24 @@ class RequestParameterExtractorTest {
     void extractIdFailureParamIsNull() {
         when(request.getParameter("id")).thenReturn(null);
 
-        var result = requestParameterExtractor.extractId(request);
+        assertThrows(ValidationException.class,
+                () -> requestParameterExtractor.extractId(request, true));
+    }
+
+    @Test
+    void extractIdSuccessWhenNotRequiredAndParamIsNull() {
+        when(request.getParameter("id")).thenReturn(null);
+
+        var result = requestParameterExtractor.extractId(request, false);
 
         assertNull(result);
     }
 
     @Test
-    void extractIdFailureParamIsBlank() {
+    void extractIdSuccessWhenNotRequiredAndParamIsBlank() {
         when(request.getParameter("id")).thenReturn("");
 
-        var result = requestParameterExtractor.extractId(request);
+        var result = requestParameterExtractor.extractId(request, false);
 
         assertNull(result);
     }
@@ -50,40 +58,7 @@ class RequestParameterExtractorTest {
     void extractIdFailureNumberFormatException() {
         when(request.getParameter("id")).thenReturn("asda");
 
-        assertThrows(ValidationException.class, () -> requestParameterExtractor.extractId(request));
-    }
-
-    @Test
-    void extractUserIdSuccess() {
-        when(request.getParameter("userId")).thenReturn("1");
-
-        var result = requestParameterExtractor.extractUserId(request);
-
-        assertEquals(1L, result);
-    }
-
-    @Test
-    void extractUserIdFailureParamIsNull() {
-        when(request.getParameter("userId")).thenReturn(null);
-
-        var result = requestParameterExtractor.extractUserId(request);
-
-        assertNull(result);
-    }
-
-    @Test
-    void extractUserIdFailureParamIsBlank() {
-        when(request.getParameter("userId")).thenReturn("");
-
-        var result = requestParameterExtractor.extractUserId(request);
-
-        assertNull(result);
-    }
-
-    @Test
-    void extractUserIdFailureNumberFormatException() {
-        when(request.getParameter("userId")).thenReturn("asda");
-
-        assertThrows(ValidationException.class, () -> requestParameterExtractor.extractUserId(request));
+        assertThrows(ValidationException.class,
+                () -> requestParameterExtractor.extractId(request, true));
     }
 }

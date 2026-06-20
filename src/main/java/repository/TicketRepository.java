@@ -5,7 +5,7 @@ import domain.Ticket;
 import java.util.List;
 import java.util.Optional;
 
-public interface TicketRepository extends Repository<Ticket> {
+public interface TicketRepository extends Repository<Ticket, Long> {
     Optional<Ticket> findByFlightIdAndPassengerId(Long flightId, Long passengerId);
 
     Optional<Ticket> findByFlightIdAndSeatNumber(Long id, Integer seatNumber);
@@ -13,4 +13,6 @@ public interface TicketRepository extends Repository<Ticket> {
     List<Ticket> findAllByUserId(Long userId);
 
     List<Ticket> findAllActualByUserId(Long currentUserId);
+
+    Optional<Ticket> findByIdAndCurrentUserId(Long id, Long currentUserId);
 }

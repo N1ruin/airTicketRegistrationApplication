@@ -36,7 +36,7 @@
         <listener-class>listener.MigrationContextListener</listener-class>
     </listener>
     <listener>
-        <listener-class>listener.DestroyServletContextListener</listener-class>
+        <listener-class>listener.CurrentUserHolderContextListener</listener-class>
     </listener>
     <filter>
         <filter-name>globalExceptionHandlerFilter</filter-name>
@@ -49,5 +49,9 @@
     <filter>
         <filter-name>authFilter</filter-name>
         <filter-class>filter.AuthorizationFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>AdminAuthorizationFilter</filter-name>
+        <filter-class>filter.AdminAuthorizationFilter</filter-class>
     </filter>
 </web-app>

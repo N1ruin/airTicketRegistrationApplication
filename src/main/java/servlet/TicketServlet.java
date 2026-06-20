@@ -1,5 +1,7 @@
 package servlet;
 
+import converter.ticket.CreateTicketRequestConverter;
+import converter.ticket.TicketDtoConverter;
 import dto.ticket.CreateTicketRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,60 +14,45 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import converter.ticket.*;
-import converter.ticket.CreateTicketRequestConverter;
-import converter.ticket.CreateTicketResponseConverter;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.HttpHelper;
 import service.TicketService;
-import validation.RequestParameterValidationService;
-import validation.TicketValidationService;
+import util.CurrentUserHolder;
+import util.JsonHelper;
+import validation.validator.ValidationService;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import static constant.AttributeName.*;
-import static constant.AttributeName.REQUEST_PARAMETER_VALIDATION_SERVICE;
+import static constant.ServletContextAttributeKey.*;
 
 @WebServlet("/api/v1/ticket")
 @Path("/ticket-app/api/v1/ticket")
 public class TicketServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(TicketServlet.class);
-    private HttpHelper httpHelper;
+    private JsonHelper jsonHelper;
     private TicketService ticketService;
-    private TicketValidationService ticketValidationService;
+    private ValidationService validationService;
     private CreateTicketRequestConverter createTicketRequestConverter;
-    private CreateTicketResponseConverter createTicketResponseConverter;
     private TicketDtoConverter ticketDtoConverter;
-    private RequestParameterValidationService parameterValidationService;
-    private PermissionChecker permissionChecker;
-    private SessionAttributeExtractor sessionAttributeExtractor;
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization start", getClass().getSimpleName());
+        log.info("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
-        httpHelper = (HttpHelper) context.getAttribute(HTTP_HELPER);
+        jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
         ticketService = (TicketService) context.getAttribute(TICKET_SERVICE);
-        ticketValidationService = (TicketValidationService) context.getAttribute(TICKET_VALIDATION_SERVICE);
+        validationService = (ValidationService) context.getAttribute(VALIDATION_SERVICE);
         createTicketRequestConverter =
                 (CreateTicketRequestConverter) context.getAttribute(CREATE_TICKET_REQUEST_CONVERTER);
-        createTicketResponseConverter =
-                (CreateTicketResponseConverter) context.getAttribute(CREATE_TICKET_RESPONSE_CONVERTER);
         ticketDtoConverter = (TicketDtoConverter) context.getAttribute(TICKET_DTO_CONVERTER);
-        parameterValidationService =
-                (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
-        permissionChecker = (PermissionChecker) context.getAttribute(PERMISSION_CHECKER);
-        sessionAttributeExtractor = (SessionAttributeExtractor) context.getAttribute(SESSION_ATTRIBUTE_EXTRACTOR);
-        permissionChecker = (PermissionChecker) context.getAttribute(PERMISSION_CHECKER);
-        sessionAttributeExtractor = (SessionAttributeExtractor) context.getAttribute(SESSION_ATTRIBUTE_EXTRACTOR);
 
-        log.info("Servlet {} initialization finish", getClass().getSimpleName());
+        log.info("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @POST
@@ -83,19 +70,20 @@ public class TicketServlet extends HttpServlet {
     public void doPost(@Parameter(hidden = true) HttpServletRequest req,
                        @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
 
-        var request = httpHelper.getRequestBody(req, CreateTicketRequest.class);
+        var body = new String(req.getInputStream().readAllBytes());
+        var request = jsonHelper.fromJson(body, CreateTicketRequest.class);
 
-        ticketValidationService.validateCreateRequest(request);
+        validationService.validate(request);
 
         var ticket = createTicketRequestConverter.convert(request);
 
-        var currentUserId = sessionAttributeExtractor.extractId(req);
-        var savedTicket = ticketService.save(ticket, currentUserId);
+        var savedTicket = ticketService.create(ticket);
 
-        var dto = createTicketResponseConverter.convert(savedTicket);
+        var dto = ticketDtoConverter.convert(savedTicket);
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
-        httpHelper.writeResponseBody(resp, dto);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(jsonHelper.toJson(dto).getBytes(StandardCharsets.UTF_8));
     }
 
     @GET
@@ -109,33 +97,31 @@ public class TicketServlet extends HttpServlet {
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        var currentUserId = sessionAttributeExtractor.extractId(req);
-        boolean isAdmin = permissionChecker.isAdmin(req);
-
-        if (isAdmin) {
-            findAll(resp);
+        String responseBodyJson;
+        if (CurrentUserHolder.isAdmin()) {
+            responseBodyJson = findAll();
         } else {
-            findAllByUserId(resp, currentUserId);
+            responseBodyJson = findAllByCurrentUserId();
         }
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(responseBodyJson.getBytes(StandardCharsets.UTF_8));
     }
 
-    private void findAll(HttpServletResponse resp) throws IOException {
+    private String findAll() {
         var tickets = ticketService.findAll();
 
         var ticketDtos = ticketDtoConverter.convertAll(tickets);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, ticketDtos);
+        return jsonHelper.toJson(ticketDtos);
     }
 
-    private void findAllByUserId(HttpServletResponse resp, Long id) throws IOException {
-        parameterValidationService.validateId(id);
-
-        var tickets = ticketService.findAllByUserId(id);
+    private String findAllByCurrentUserId() {
+        var tickets = ticketService.findAllByCurrentUserId();
 
         var ticketDto = ticketDtoConverter.convertAll(tickets);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, ticketDto);
+        return jsonHelper.toJson(ticketDto);
     }
 }

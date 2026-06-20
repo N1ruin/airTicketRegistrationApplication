@@ -1,10 +1,9 @@
 package converter.user;
 
-import domain.Role;
 import domain.User;
 import dto.user.UserSignUpRequest;
 import converter.Converter;
-import sequrity.PasswordEncoder;
+import security.PasswordEncoder;
 
 public class UserSignUpRequestConverter implements Converter<UserSignUpRequest, User> {
     private final PasswordEncoder passwordEncoder;
@@ -21,11 +20,6 @@ public class UserSignUpRequestConverter implements Converter<UserSignUpRequest, 
 
         user.setEmail(source.email());
         user.setPasswordHash(encodedPassword);
-        user.setFirstName(source.firstName());
-        user.setLastName(source.lastName());
-        user.setFatherName(source.fatherName());
-        user.setRole(Role.USER);
-        user.setBlocked(false);
 
         return user;
     }

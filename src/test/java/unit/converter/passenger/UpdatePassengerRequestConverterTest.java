@@ -11,11 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
-
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,9 +25,7 @@ class UpdatePassengerRequestConverterTest {
     void convertRequestToPassengerSuccess() {
         var passportMock = mock(Passport.class);
         var passportDtoMock = mock(PassportDto.class);
-        var birthDate = LocalDate.now();
-        var request = new UpdatePassengerRequest(1L, "FirstName", "LastName", "FatherName",
-                true, birthDate, passportDtoMock);
+        var request = new UpdatePassengerRequest(1L, passportDtoMock);
         when(passportConverter.convert(passportDtoMock)).thenReturn(passportMock);
 
         var result = converter.convert(request);
@@ -39,11 +33,6 @@ class UpdatePassengerRequestConverterTest {
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertNull(result.getUserId());
-        assertEquals("FirstName", result.getFirstName());
-        assertEquals("LastName", result.getLastName());
-        assertEquals("FatherName", result.getFatherName());
-        assertEquals(birthDate, result.getBirthDate());
-        assertTrue(result.isMale());
         assertEquals(passportMock, result.getPassport());
         verify(passportConverter).convert(passportDtoMock);
     }

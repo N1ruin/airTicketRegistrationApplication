@@ -15,16 +15,30 @@ class PassportConverterTest {
     void convertPassportDtoToPassportSuccess() {
         var issueDate = LocalDate.now();
         var expiredDate = LocalDate.now().plusYears(5);
-        var passportDto = new PassportDto("Series", "Number", "Citizenship", issueDate,
+        var birthDate = LocalDate.of(1990, 1, 1);
+        var passportDto = new PassportDto(
+                "Иван",
+                "Петров",
+                "Сергеевич",
+                true,
+                "4510",
+                "123456",
+                "РФ",
+                birthDate,
+                issueDate,
                 expiredDate);
-
         var result = converter.convert(passportDto);
 
         assertNotNull(result);
-        assertEquals("Series", passportDto.series());
-        assertEquals("Number", passportDto.number());
-        assertEquals("Citizenship", passportDto.citizenship());
-        assertEquals(issueDate, passportDto.issueDate());
-        assertEquals(expiredDate, passportDto.expiredDate());
+        assertEquals("Иван", result.getFirstName());
+        assertEquals("Петров", result.getLastName());
+        assertEquals("Сергеевич", result.getFatherName());
+        assertTrue(result.isMale());
+        assertEquals("4510", result.getSeries());
+        assertEquals("123456", result.getNumber());
+        assertEquals("РФ", result.getCitizenship());
+        assertEquals(birthDate, result.getBirthDate());
+        assertEquals(issueDate, result.getIssueDate());
+        assertEquals(expiredDate, result.getExpiredDate());
     }
 }

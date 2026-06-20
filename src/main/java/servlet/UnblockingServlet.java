@@ -16,9 +16,10 @@ import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.UserService;
+import util.RequestParameterExtractor;
 import validation.RequestParameterValidationService;
 
-import static constant.AttributeName.*;
+import static constant.ServletContextAttributeKey.*;
 
 @WebServlet("/admin/unblock")
 @Path("/ticket-app/admin/unblock")
@@ -30,7 +31,7 @@ public class UnblockingServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        log.info("Servlet {} initialization start", getClass().getSimpleName());
+        log.info("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
@@ -39,7 +40,7 @@ public class UnblockingServlet extends HttpServlet {
         requestParameterValidationService =
                 (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
 
-        log.info("Servlet {} initialization finish", getClass().getSimpleName());
+        log.info("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @Operation(tags = {"Users"}, summary = "Разблокировка пользователя по id", description = "Разблокирует пользователя",
@@ -54,7 +55,7 @@ public class UnblockingServlet extends HttpServlet {
     @Override
     public void doPut(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) {
-        var id = requestParameterExtractor.extractId(req);
+        var id = requestParameterExtractor.extractId(req, true);
 
         requestParameterValidationService.validateId(id);
 

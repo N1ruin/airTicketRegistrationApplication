@@ -1,6 +1,8 @@
 package domain;
 
 public enum TicketStatus {
-    ACTIVE,
+    PENDING,
+    CONFIRMED,
+    CANCELLED,
     REFUNDED
 }

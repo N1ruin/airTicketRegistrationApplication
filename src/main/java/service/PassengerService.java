@@ -1,154 +1,93 @@
 package service;
 
 import domain.Passenger;
-import exception.EntityAlreadyExistException;
 import exception.EntityNotFoundException;
-import exception.ValidationException;
+import repository.FavoriteAirportsRepository;
 import repository.PassengerRepository;
-import repository.TransactionHelper;
+import util.CurrentUserHolder;
+import util.TransactionHelper;
 
 import java.util.List;
-import java.util.Optional;
 
 public class PassengerService {
     private final PassengerRepository passengerRepository;
+    private final FavoriteAirportsRepository favoriteAirportsRepository;
     private final AirportService airportService;
     private final PassportService passportService;
     private final TransactionHelper transactionHelper;
 
-    public PassengerService(PassengerRepository passengerRepository, AirportService airportService,
+    public PassengerService(PassengerRepository passengerRepository,
+                            FavoriteAirportsRepository favoriteAirportsRepository, AirportService airportService,
                             PassportService passportService, TransactionHelper transactionHelper) {
         this.passengerRepository = passengerRepository;
+        this.favoriteAirportsRepository = favoriteAirportsRepository;
         this.airportService = airportService;
         this.passportService = passportService;
         this.transactionHelper = transactionHelper;
     }
 
-    public Passenger save(Passenger passenger) {
-        return saveTransactional(passenger);
+    public Passenger create(Passenger passenger) {
+        return transactionHelper.executeInTransaction(() -> {
+            var createdPassport = passportService.create(passenger.getPassport());
+            passenger.setPassport(createdPassport);
+
+            return passengerRepository.create(passenger);
+        });
     }
 
     public List<Passenger> findAllByUserId(Long userId) {
-        return findAllByUserIdTransactional(userId);
+        return passengerRepository.findAllByUserId(userId);
     }
 
     public Passenger findById(Long id) {
-        return findByIdTransactional(id);
+        return passengerRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Passenger not found. ID: %d".formatted(id)));
     }
 
     public List<Passenger> findAll() {
-        return findAllTransactional();
+        return passengerRepository.findAll();
     }
 
-    public Passenger update(Passenger passenger, Long currentUserId) {
-        return updateTransactional(passenger, currentUserId);
-    }
-
-    public void delete(Long id, Long userId) {
-        deleteTransactional(id, userId);
-    }
-
-    public Optional<Passenger> findByPassportId(Long passportId) {
-        return findByPassportIdTransactional(passportId);
-    }
-
-    private Optional<Passenger> findByPassportIdTransactional(Long passportId) {
-        return transactionHelper.executeInTransaction(() -> passengerRepository.findByPassportId(passportId));
-    }
-
-    public void updateFavoriteAirports(Long passengerId, String code) {
-        updateFavoriteAirportsTransactional(passengerId, code);
-    }
-
-    public void refundFavoriteAirport(Long passengerId, Long airportId) {
-        refundFavoriteAirportTransactional(passengerId, airportId);
-    }
-
-    private Passenger saveTransactional(Passenger passenger) {
+    public Passenger update(Passenger passenger) {
         return transactionHelper.executeInTransaction(() -> {
-            var passport = passenger.getPassport();
+            var existing = findByIdAndUserId(passenger.getId(), CurrentUserHolder.getCurrentUserId());
 
-            var existedPassport = passportService.findBySeriesAndNumberAndCitizenshipExist(
-                            passport.getSeries(), passport.getNumber(), passport.getCitizenship())
-                    .orElseGet(() -> passportService.save(passport));
+            var updatedPassport = passportService.update(passenger.getPassport(), passenger.getId());
 
-            findByPassportId(existedPassport.getId())
-                    .ifPresent(p -> {
-                        throw new EntityAlreadyExistException(
-                                "Passenger with passport id %d already exists ".formatted(p.getId())
-                        );
-                    });
+            existing.setPassport(updatedPassport);
 
-            passenger.setPassport(existedPassport);
-
-            return passengerRepository.save(passenger);
+            return existing;
         });
     }
 
-    private List<Passenger> findAllByUserIdTransactional(Long userId) {
-        return transactionHelper.executeInTransaction(() -> passengerRepository.findAllByUserId(userId));
-    }
-
-    private Passenger findByIdTransactional(Long id) {
-        return transactionHelper.executeInTransaction(() -> passengerRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Passenger with id %d not found".formatted(id))));
-    }
-
-    private List<Passenger> findAllTransactional() {
-        return transactionHelper.executeInTransaction(passengerRepository::findAll);
-    }
-
-    private Passenger updateTransactional(Passenger passenger, Long currentUserId) {
-        return transactionHelper.executeInTransaction(() -> {
-            var existing = passengerRepository.findById(passenger.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("Passenger with id %d not found"
-                            .formatted(passenger.getId())));
-
-            if (!existing.getUserId().equals(currentUserId)) {
-                throw new ValidationException("You cannot update someone else's passenger");
-            }
-            var passportRequest = passenger.getPassport();
-            var passportToLink = passportService.findBySeriesAndNumberAndCitizenshipExist(
-                    passportRequest.getSeries(),
-                    passportRequest.getNumber(),
-                    passportRequest.getCitizenship()
-            ).orElseGet(() -> passportService.save(passportRequest));
-
-            existing.setFirstName(passenger.getFirstName());
-            existing.setLastName(passenger.getLastName());
-            existing.setFatherName(passenger.getFatherName());
-            existing.setMale(passenger.isMale());
-            existing.setBirthDate(passenger.getBirthDate());
-            existing.setPassport(passportToLink);
-
-            return passengerRepository.update(existing);
-
-        });
-    }
-
-    private void deleteTransactional(Long id, Long userId) {
+    public void delete(Long id) {
         transactionHelper.executeInTransaction(() -> {
-            var passenger = passengerRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Passenger with id %d not found".formatted(id)));
-
-            if (!passenger.getUserId().equals(userId)) {
-                throw new ValidationException("The passenger is not linked to the current user");
-            }
+            var passenger = findByIdAndUserId(id, CurrentUserHolder.getCurrentUserId());
 
             passportService.deleteById(passenger.getPassport().getId());
             passengerRepository.deleteById(id);
         });
     }
 
-    private void updateFavoriteAirportsTransactional(Long passengerId, String code) {
+    public void addFavoriteAirport(Long passengerId, String code) {
         transactionHelper.executeInTransaction(() -> {
-            var airport = airportService.findByCode(code);
+            var airport = airportService.findById(code);
 
-            passengerRepository.updateFavoriteAirports(passengerId, airport.getId());
+            findByIdAndUserId(passengerId, CurrentUserHolder.getCurrentUserId());
+
+            favoriteAirportsRepository.addFavorite(passengerId, airport.getCode());
         });
     }
 
-    private void refundFavoriteAirportTransactional(Long passengerId, Long airportId) {
-        transactionHelper.executeInTransaction(() -> passengerRepository.refundFavoriteAirport(passengerId, airportId));
+    public void removeFavoriteAirport(Long passengerId, String airportCode) {
+        findByIdAndUserId(passengerId, CurrentUserHolder.getCurrentUserId());
+
+        favoriteAirportsRepository.removeFavorite(passengerId, airportCode);
+    }
+
+    public Passenger findByIdAndUserId(Long id, Long userId) {
+        return passengerRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Passenger not found or unavailable. ID: %d"
+                        .formatted(id)));
     }
 }

@@ -3,18 +3,17 @@ package repository.impl;
 import domain.User;
 import exception.RepositoryException;
 import mapper.UserResultSetMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import repository.ConnectionHelper;
 import repository.UserRepository;
+import util.ConnectionHelper;
 
-import java.sql.*;
-import java.util.Arrays;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.List;
 import java.util.Optional;
 
 public class UserRepositoryImpl implements UserRepository {
-    private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
     private static final String SELECT_QUERY = "SELECT * FROM tickets_application.users";
     private final ConnectionHelper connectionHelper;
     private final UserResultSetMapper resultSetMapper;
@@ -35,17 +34,19 @@ public class UserRepositoryImpl implements UserRepository {
 
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
-            log.error("Select by email {} error", email, e);
-            throw new RuntimeException(e);
+            throw new RepositoryException("User find by email error", e);
         }
     }
 
     @Override
-    public User save(User user) {
+    public User create(User user) {
         var sql = """
-                INSERT INTO tickets_application.users (email, password_hash, first_name, last_name, father_name,
-                user_role, is_blocked)
-                VALUES(?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tickets_application.users (
+                email,
+                password_hash,
+                role,
+                is_blocked)
+                VALUES(?, ?, ?, ?)
                 RETURNING id;
                 """;
 
@@ -60,8 +61,7 @@ public class UserRepositoryImpl implements UserRepository {
 
             return user;
         } catch (SQLException e) {
-            log.error("Save user with email {} error", user.getEmail(), e);
-            throw new RepositoryException(Arrays.toString(e.getStackTrace()));
+            throw new RepositoryException("User creating error", e);
         }
     }
 
@@ -76,8 +76,7 @@ public class UserRepositoryImpl implements UserRepository {
 
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
-            log.error("Select by id {} error", id, e);
-            throw new RepositoryException("User find by id error");
+            throw new RepositoryException("User find by id error", e);
         }
     }
 
@@ -89,8 +88,7 @@ public class UserRepositoryImpl implements UserRepository {
 
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
-            log.error("Find all users error", e);
-            throw new RepositoryException("User find all error");
+            throw new RepositoryException("User find all error", e);
         }
     }
 
@@ -100,10 +98,7 @@ public class UserRepositoryImpl implements UserRepository {
                 UPDATE tickets_application.users
                 SET email = ?,
                     password_hash = ?,
-                    first_name = ?,
-                    last_name = ?,
-                    father_name = ?,
-                    user_role = ?,
+                    role = ?,
                     is_blocked = ?,
                     last_login = ?
                 WHERE id = ?
@@ -112,19 +107,20 @@ public class UserRepositoryImpl implements UserRepository {
         var connection = connectionHelper.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(user, preparedStatement);
+
             if (user.getLastLogin() != null) {
-                preparedStatement.setTimestamp(8, Timestamp.valueOf(user.getLastLogin()));
+                preparedStatement.setTimestamp(5, Timestamp.valueOf(user.getLastLogin()));
             } else {
-                preparedStatement.setNull(8, Types.TIMESTAMP);
+                preparedStatement.setNull(5, Types.TIMESTAMP);
             }
-            preparedStatement.setLong(9, user.getId());
+
+            preparedStatement.setLong(6, user.getId());
 
             preparedStatement.executeUpdate();
 
             return user;
         } catch (SQLException e) {
-            log.error("User with email {} update error", user.getEmail(), e);
-            throw new RepositoryException("User update error");
+            throw new RepositoryException("User update error", e);
         }
     }
 
@@ -138,18 +134,14 @@ public class UserRepositoryImpl implements UserRepository {
 
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            log.error("Delete user with id {} error", id, e);
-            throw new RepositoryException("User delete error");
+            throw new RepositoryException("User delete error", e);
         }
     }
 
     private void setStatementFields(User user, PreparedStatement preparedStatement) throws SQLException {
         preparedStatement.setString(1, user.getEmail());
         preparedStatement.setString(2, user.getPasswordHash());
-        preparedStatement.setString(3, user.getFirstName());
-        preparedStatement.setString(4, user.getLastName());
-        preparedStatement.setString(5, user.getFatherName());
-        preparedStatement.setString(6, user.getRole().name());
-        preparedStatement.setBoolean(7, user.isBlocked());
+        preparedStatement.setString(3, user.getRole().name());
+        preparedStatement.setBoolean(4, user.isBlocked());
     }
 }

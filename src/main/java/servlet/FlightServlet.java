@@ -1,6 +1,7 @@
 package servlet;
 
 import converter.flight.*;
+import dto.error.ErrorDto;
 import dto.flight.CreateFlightRequest;
 import dto.flight.UpdateFlightRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,54 +20,50 @@ import jakarta.ws.rs.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.FlightService;
-import service.HttpHelper;
-import validation.FlightValidationService;
+import util.CurrentUserHolder;
+import util.JsonHelper;
+import util.RequestParameterExtractor;
 import validation.RequestParameterValidationService;
+import validation.validator.ValidationService;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
 
-import static constant.AttributeName.*;
+import static constant.ServletContextAttributeKey.*;
 
 @WebServlet("/api/v1/flight")
 @Path("/ticket-app/api/v1/flight")
 public class FlightServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(FlightServlet.class);
-    private HttpHelper httpHelper;
     private FlightService flightService;
     private RequestParameterExtractor parameterExtractor;
-    private FlightValidationService flightValidationService;
     private CreateFlightRequestConverter createFlightRequestConverter;
-    private CreateFlightResponseConverter createFlightResponseConverter;
     private FlightConverter flightConverter;
     private UpdateFlightRequestConverter flightRequestConverter;
-    private UpdateFlightResponseConverter updateFlightResponseConverter;
     private RequestParameterValidationService requestParameterValidationService;
-    private PermissionChecker permissionChecker;
+    private JsonHelper jsonHelper;
+    private ValidationService validationService;
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization start", getClass().getSimpleName());
+        log.info("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
-        httpHelper = (HttpHelper) context.getAttribute(HTTP_HELPER);
+        jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
         flightService = (FlightService) context.getAttribute(FLIGHT_SERVICE);
         parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
-        flightValidationService = (FlightValidationService) context.getAttribute(FLIGHT_VALIDATION_SERVICE);
         createFlightRequestConverter =
                 (CreateFlightRequestConverter) context.getAttribute(CREATE_FLIGHT_REQUEST_CONVERTER);
-        createFlightResponseConverter =
-                (CreateFlightResponseConverter) context.getAttribute(CREATE_FLIGHT_RESPONSE_CONVERTER);
         flightConverter = (FlightConverter) context.getAttribute(FLIGHT_CONVERTER);
         flightRequestConverter =
                 (UpdateFlightRequestConverter) context.getAttribute(UPDATE_FLIGHT_REQUEST_CONVERTER);
-        updateFlightResponseConverter =
-                (UpdateFlightResponseConverter) context.getAttribute(UPDATE_FLIGHT_RESPONSE_CONVERTER);
         requestParameterValidationService =
                 (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
-        permissionChecker = (PermissionChecker) context.getAttribute(PERMISSION_CHECKER);
+        validationService = (ValidationService) context.getAttribute(VALIDATION_SERVICE);
 
-        log.info("Servlet {} initialization finish", getClass().getSimpleName());
+        log.info("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @GET
@@ -82,13 +79,18 @@ public class FlightServlet extends HttpServlet {
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        var id = parameterExtractor.extractId(req);
+        var id = parameterExtractor.extractId(req, false);
 
+        String responseBodyJson;
         if (id == null) {
-            findAll(resp);
+            responseBodyJson = findAll();
         } else {
-            findById(resp, id);
+            responseBodyJson = findById(id);
         }
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(responseBodyJson.getBytes(StandardCharsets.UTF_8));
     }
 
     @POST
@@ -104,24 +106,26 @@ public class FlightServlet extends HttpServlet {
     @Override
     public void doPost(@Parameter(hidden = true) HttpServletRequest req,
                        @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (!permissionChecker.isAdmin(req)) {
+        if (!CurrentUserHolder.isAdmin()) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
             return;
         }
 
-        var request = httpHelper.getRequestBody(req, CreateFlightRequest.class);
+        var body = new String(req.getInputStream().readAllBytes());
+        var request = jsonHelper.fromJson(body, CreateFlightRequest.class);
 
-        flightValidationService.validateCreateRequest(request);
+        validationService.validate(request);
 
         var flight = createFlightRequestConverter.convert(request);
 
-        var savedFlight = flightService.save(flight);
+        var savedFlight = flightService.create(flight);
 
-        var dto = createFlightResponseConverter.convert(savedFlight);
+        var dto = flightConverter.convert(savedFlight);
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
-        httpHelper.writeResponseBody(resp, dto);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(jsonHelper.toJson(dto).getBytes(StandardCharsets.UTF_8));
     }
 
     @PUT
@@ -137,24 +141,26 @@ public class FlightServlet extends HttpServlet {
     @Override
     public void doPut(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (!permissionChecker.isAdmin(req)) {
+        if (!CurrentUserHolder.isAdmin()) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
             return;
         }
 
-        var updateFlightRequest = httpHelper.getRequestBody(req, UpdateFlightRequest.class);
+        var body = new String(req.getInputStream().readAllBytes());
+        var updateFlightRequest = jsonHelper.fromJson(body, UpdateFlightRequest.class);
 
-        flightValidationService.validateUpdateRequest(updateFlightRequest);
+        validationService.validate(updateFlightRequest);
 
         var flight = flightRequestConverter.convert(updateFlightRequest);
 
         var updatedFlight = flightService.update(flight);
 
-        var flightDto = updateFlightResponseConverter.convert(updatedFlight);
+        var flightDto = flightConverter.convert(updatedFlight);
 
         resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, flightDto);
+        resp.setContentType("application/json");
+        resp.getOutputStream().write(jsonHelper.toJson(flightDto).getBytes(StandardCharsets.UTF_8));
     }
 
     @DELETE
@@ -162,7 +168,7 @@ public class FlightServlet extends HttpServlet {
             description = "Удаление рейса по id",
             parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "Id рейса", example = "1",
                     schema = @Schema(type = "integer", format = "int64"))},
-            responses = {@ApiResponse(responseCode = "200", description = "Успех"),
+            responses = {@ApiResponse(responseCode = "204", description = "Успех"),
                     @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
                     @ApiResponse(responseCode = "401", description = "Не авторизован"),
                     @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
@@ -170,17 +176,22 @@ public class FlightServlet extends HttpServlet {
     @Override
     public void doDelete(@Parameter(hidden = true) HttpServletRequest req,
                          @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (!permissionChecker.isAdmin(req)) {
+        if (!CurrentUserHolder.isAdmin()) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
             return;
         }
 
-        var id = parameterExtractor.extractId(req);
+        var id = parameterExtractor.extractId(req, true);
 
         if (id == null) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            httpHelper.writeResponseBody(resp, "Parameter 'id' is required for deletion");
+            resp.setContentType("application/json");
+            var errorDto = new ErrorDto(HttpServletResponse.SC_BAD_REQUEST,
+                    "Parameter 'id' is required for deletion",
+                    ZonedDateTime.now());
+            resp.getOutputStream().write(jsonHelper.toJson(errorDto).getBytes(StandardCharsets.UTF_8));
+
             return;
         }
 
@@ -188,26 +199,24 @@ public class FlightServlet extends HttpServlet {
 
         flightService.delete(id);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
 
-    private void findAll(HttpServletResponse resp) throws IOException {
+    private String findAll() {
         var flights = flightService.findAll();
 
         var flightDtos = flightConverter.convertAll(flights);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, flightDtos);
+        return jsonHelper.toJson(flightDtos);
     }
 
-    private void findById(HttpServletResponse resp, Long id) throws IOException {
+    private String findById(Long id) {
         requestParameterValidationService.validateId(id);
 
         var flight = flightService.findById(id);
 
         var flightDto = flightConverter.convert(flight);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
-        httpHelper.writeResponseBody(resp, flightDto);
+        return jsonHelper.toJson(flightDto);
     }
 }

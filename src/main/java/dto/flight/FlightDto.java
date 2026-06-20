@@ -1,10 +1,9 @@
 package dto.flight;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import dto.airport.AirportDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Schema(description = "Общая информация о рейсе")
 public record FlightDto(
@@ -18,19 +17,23 @@ public record FlightDto(
         @Schema(description = "Количество свободных мест", example = "45")
         Integer freeSeats,
 
-        @Schema(description = "Данные аэропорта вылета")
-        AirportDto departureAirportDto,
+        @Schema(description = "Код аэропорта вылета")
+        String departureAirportCode,
 
-        @Schema(description = "Данные аэропорта прибытия")
-        AirportDto arrivalAirportDto,
+        @Schema(description = "Код аэропорта прибытия")
+        String arrivalAirportCode,
 
-        @Schema(description = "Дата и время вылета", example = "2024-11-20 12:00:00",
-                type = "string", pattern = "yyyy-MM-dd HH:mm:ss")
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-        LocalDateTime departureDate,
+        @Schema(description = "Дата и время вылета",
+                example = "2024-11-20T12:00:00+03:00",
+                type = "string",
+                format = "date-time")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
+        ZonedDateTime departureDate,
 
-        @Schema(description = "Дата и время прибытия", example = "2024-11-20 16:30:00",
-                type = "string", pattern = "yyyy-MM-dd HH:mm:ss")
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-        LocalDateTime arrivalDate) {
+        @Schema(description = "Дата и время прибытия",
+                example = "2024-11-20T16:30:00+03:00",
+                type = "string",
+                format = "date-time")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
+        ZonedDateTime arrivalDate) {
 }
