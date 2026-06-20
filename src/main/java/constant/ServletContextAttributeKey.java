@@ -13,6 +13,7 @@ public class ServletContextAttributeKey {
     public static final String PROPERTIES = "properties";
     public static final String CONNECTION_HELPER = "connectionHelper";
     public static final String TRANSACTION_HELPER = "transactionHelper";
+    public static final String VALIDATOR_FACTORY = "validatorFactory";
     public static final String VALIDATION_SERVICE = "validationService";
     public static final String JSON_HELPER = "jsonHelper";
 

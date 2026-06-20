@@ -13,6 +13,10 @@ import java.lang.annotation.*;
 public @interface ValidDateRange {
     String message() default "The arrival date must be later than the departure date";
 
+    Class<?>[] groups() default {};
+
+    Class<? extends Payload>[] payload() default {};
+
     String startDate();
 
     String endDate();

@@ -17,7 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.UserService;
 import util.RequestParameterExtractor;
-import validation.RequestParameterValidationService;
+import validation.service.RequestParameterValidationService;
 
 import static constant.ServletContextAttributeKey.*;
 

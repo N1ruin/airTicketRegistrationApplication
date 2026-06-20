@@ -22,7 +22,7 @@ import org.apache.logging.log4j.Logger;
 import service.TicketService;
 import util.CurrentUserHolder;
 import util.JsonHelper;
-import validation.validator.ValidationService;
+import validation.service.ValidationService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

@@ -22,7 +22,7 @@ import service.AirportService;
 import util.CurrentUserHolder;
 import util.JsonHelper;
 import util.RequestParameterExtractor;
-import validation.validator.ValidationService;
+import validation.service.ValidationService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

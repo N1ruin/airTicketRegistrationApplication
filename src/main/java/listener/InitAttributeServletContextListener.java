@@ -17,6 +17,8 @@ import converter.user.UserDtoConverter;
 import converter.user.UserSignUpRequestConverter;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
 import mapper.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,8 +29,8 @@ import security.PasswordEncoder;
 import service.*;
 import util.RequestParameterExtractor;
 import util.JsonHelper;
-import validation.*;
-import validation.validator.ValidationService;
+import validation.service.RequestParameterValidationService;
+import validation.service.ValidationService;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -51,7 +53,9 @@ public class InitAttributeServletContextListener implements ServletContextListen
 
         var dataSource = initHikariDataSource(properties);
         context.setAttribute(DATA_SOURCE, dataSource);
-        var validationService = new ValidationService();
+        var validatorFactory = Validation.buildDefaultValidatorFactory();
+        context.setAttribute(VALIDATOR_FACTORY, validatorFactory);
+        var validationService = new ValidationService(validatorFactory.getValidator());
         context.setAttribute(VALIDATION_SERVICE, validationService);
         var objectMapper = new ObjectMapper();
         context.setAttribute(OBJECT_MAPPER, objectMapper);
@@ -175,8 +179,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
 
         log.info("Validator factory closing started");
 
-        ((ValidationService) context.getAttribute(VALIDATION_SERVICE))
-                .close();
+        ((ValidatorFactory) context.getAttribute(VALIDATOR_FACTORY)).close();
 
         log.info("Validator factory closing finished");
 

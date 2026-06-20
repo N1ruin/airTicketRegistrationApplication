@@ -2,7 +2,7 @@ package unit.service.validation;
 
 import exception.ValidationException;
 import org.junit.jupiter.api.Test;
-import validation.RequestParameterValidationService;
+import validation.service.RequestParameterValidationService;
 
 import static org.junit.jupiter.api.Assertions.*;
 

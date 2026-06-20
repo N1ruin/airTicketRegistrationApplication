@@ -25,8 +25,8 @@ import service.UserService;
 import util.CurrentUserHolder;
 import util.JsonHelper;
 import util.RequestParameterExtractor;
-import validation.RequestParameterValidationService;
-import validation.validator.ValidationService;
+import validation.service.RequestParameterValidationService;
+import validation.service.ValidationService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

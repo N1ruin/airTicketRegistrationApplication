@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 import service.TicketService;
 import util.CurrentUserHolder;
 import util.RequestParameterExtractor;
-import validation.RequestParameterValidationService;
+import validation.service.RequestParameterValidationService;
 
 import static constant.ServletContextAttributeKey.*;
 
