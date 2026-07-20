@@ -1,0 +1,1 @@
+ALTER TABLE tickets_application.address ADD CONSTRAINT unique_address UNIQUE (country, city, street, house_number);

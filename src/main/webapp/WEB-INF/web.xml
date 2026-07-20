@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app
+        xmlns="https://jakarta.ee/xml/ns/jakartaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+        https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+        version="6.1">
+
+    <display-name>Air Ticket Registration Application</display-name>
+
+    <listener>
+        <listener-class>listener.InitAttributeServletContextListener</listener-class>
+    </listener>
+    <listener>
+        <listener-class>listener.MigrationContextListener</listener-class>
+    </listener>
+    <listener>
+        <listener-class>listener.CurrentUserHolderContextListener</listener-class>
+    </listener>
+
+    <filter>
+        <filter-name>charsetContentTypeFilter</filter-name>
+        <filter-class>filter.CharsetContentTypeFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>globalExceptionHandlerFilter</filter-name>
+        <filter-class>filter.GlobalExceptionHandlerFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>authFilter</filter-name>
+        <filter-class>filter.AuthorizationFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>globalExceptionHandlerFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>authFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>charsetContentTypeFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <servlet>
+        <servlet-name>OpenApiServlet</servlet-name>
+        <servlet-class>io.swagger.v3.jaxrs2.integration.OpenApiServlet</servlet-class>
+        <init-param>
+            <param-name>openapi.configuration.resourcePackages</param-name>
+            <param-value>servlet</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet>
+        <servlet-name>WebjarsServlet</servlet-name>
+        <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>WebjarsServlet</servlet-name>
+        <url-pattern>/webjars/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>OpenApiServlet</servlet-name>
+        <url-pattern>/swagger</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>ActualTicketServlet</servlet-name>
+        <servlet-class>servlet.ActualTicketServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ActualTicketServlet</servlet-name>
+        <url-pattern>/api/v1/ticket/actual</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>AirportsListServlet</servlet-name>
+        <servlet-class>servlet.AirportListServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AirportsListServlet</servlet-name>
+        <url-pattern>/api/v1/airports</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>AirportServlet</servlet-name>
+        <servlet-class>servlet.AirportServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AirportServlet</servlet-name>
+        <url-pattern>/api/v1/airport/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>UserBlockingServlet</servlet-name>
+        <servlet-class>servlet.UserAdminServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>UserBlockingServlet</servlet-name>
+        <url-pattern>/admin/block</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>FlightServlet</servlet-name>
+        <servlet-class>servlet.FlightServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>FlightServlet</servlet-name>
+        <url-pattern>/api/v1/flight</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>FlightListServlet</servlet-name>
+        <servlet-class>servlet.FlightListServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>FlightServlet</servlet-name>
+        <url-pattern>/api/v1/flights</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>AdminFlightServlet</servlet-name>
+        <servlet-class>servlet.AdminFlightServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AdminFlightServlet</servlet-name>
+        <url-pattern>/admin/api/v1/flight</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>LogoutServlet</servlet-name>
+        <servlet-class>servlet.LogoutServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>LogoutServlet</servlet-name>
+        <url-pattern>/logout</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>PassengerServlet</servlet-name>
+        <servlet-class>servlet.PassengerServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>PassengerServlet</servlet-name>
+        <url-pattern>/api/v1/passenger</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>SignInServlet</servlet-name>
+        <servlet-class>servlet.SignInServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SignInServlet</servlet-name>
+        <url-pattern>/signin</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>SignUpServlet</servlet-name>
+        <servlet-class>servlet.SignUpServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SignUpServlet</servlet-name>
+        <url-pattern>/signup</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>TicketRefundServlet</servlet-name>
+        <servlet-class>servlet.TicketRefundServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TicketRefundServlet</servlet-name>
+        <url-pattern>/api/v1/ticket/refund</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>TicketServlet</servlet-name>
+        <servlet-class>servlet.TicketServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TicketServlet</servlet-name>
+        <url-pattern>/api/v1/ticket</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>UnblockingServlet</servlet-name>
+        <servlet-class>servlet.UnblockingServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>UnblockingServlet</servlet-name>
+        <url-pattern>/admin/unblock</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>UserAdminSignupServlet</servlet-name>
+        <servlet-class>servlet.UserAdminSignupServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>UserAdminSignupServlet</servlet-name>
+        <url-pattern>/admin/signup</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>UserServlet</servlet-name>
+        <servlet-class>servlet.UserServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>UserServlet</servlet-name>
+        <url-pattern>/api/v1/user</url-pattern>
+    </servlet-mapping>
+</web-app>

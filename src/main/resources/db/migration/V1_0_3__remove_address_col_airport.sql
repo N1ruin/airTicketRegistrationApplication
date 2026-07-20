@@ -1,0 +1,1 @@
+ALTER TABLE tickets_application.airport DROP COLUMN address

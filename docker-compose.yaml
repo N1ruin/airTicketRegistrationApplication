@@ -1,0 +1,29 @@
+services:
+  database:
+    image: postgres:17-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    depends_on:
+      database:
+        condition: service_healthy
+    container_name: tomcat
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres-data:
