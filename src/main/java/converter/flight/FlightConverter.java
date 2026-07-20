@@ -8,10 +8,10 @@ public class FlightConverter implements Converter<Flight, FlightDto> {
     @Override
     public FlightDto convert(Flight flight) {
         var id = flight.getId();
-        var allSeats = flight.getAllSeats();
+        var allSeats = flight.getSeatsCount();
         var freeSeats = flight.getFreeSeats();
-        var departureAirportCode = flight.getDepartureAirportCode();
-        var arrivalAirportCode = flight.getArrivalAirportCode();
+        var departureAirportCode = flight.getDepartureAirportId();
+        var arrivalAirportCode = flight.getArrivalAirportId();
         var departureDate = flight.getDepartureDate();
         var arrivalDate = flight.getArrivalDate();
 

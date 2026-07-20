@@ -8,11 +8,11 @@ public class CreateFlightRequestConverter implements Converter<CreateFlightReque
     @Override
     public Flight convert(CreateFlightRequest request) {
         var flight = new Flight();
-        flight.setAllSeats(request.allSeats());
+        flight.setSeatsCount(request.seatsCount());
         flight.setFreeSeats(request.freeSeats());
 
-        flight.setDepartureAirportCode(request.departureAirportCode());
-        flight.setArrivalAirportCode(request.arrivalAirportCode());
+        flight.setDepartureAirportId(request.departureAirportId());
+        flight.setArrivalAirportId(request.arrivalAirportId());
         flight.setDepartureDate(request.departureDate());
         flight.setArrivalDate(request.arrivalDate());
 

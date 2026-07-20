@@ -1,6 +1,6 @@
 package servlet;
 
-import converter.flight.FlightConverter;
+import converter.airport.AirportConverter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -14,56 +14,52 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import service.FlightService;
+import service.AirportService;
 import util.JsonHelper;
-import util.RequestParameterExtractor;
 
 import java.io.IOException;
 
 import static constant.ServletContextAttributeKey.*;
+import static constant.ServletContextAttributeKey.JSON_HELPER;
 
-@Path("/ticket-app/api/v1/flight")
-public class FlightServlet extends HttpServlet {
-    private static final Logger log = LogManager.getLogger(FlightServlet.class);
-    private FlightService flightService;
-    private RequestParameterExtractor parameterExtractor;
-    private FlightConverter flightConverter;
+@Path("/ticket-app/api/v1/airports")
+public class AirportListServlet extends HttpServlet {
+    private static final Logger log = LogManager.getLogger(AirportListServlet.class);
+
+    private AirportService airportService;
     private JsonHelper jsonHelper;
+    private AirportConverter airportConverter;
 
     @Override
     public void init(ServletConfig config) {
         log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
-
+        airportService = (AirportService) context.getAttribute(AIRPORT_SERVICE);
+        airportConverter = (AirportConverter) context.getAttribute(AIRPORT_CONVERTER);
         jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
-        flightService = (FlightService) context.getAttribute(FLIGHT_SERVICE);
-        parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
-        flightConverter = (FlightConverter) context.getAttribute(FLIGHT_CONVERTER);
 
         log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @GET
-    @Operation(tags = {"Flights"}, summary = "Получение данных рейса",
-            description = "Возвращает данные рейса",
-            parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "Id рейса", example = "1",
+    @Operation(tags = {"Airports"}, summary = "Получение списка аэропортов",
+            description = "Возвращает все аэропорты",
+            parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "Id аэропорта", example = "1",
                     schema = @Schema(type = "integer", format = "int64"))},
             responses = {@ApiResponse(responseCode = "200", description = "Успех"),
                     @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
                     @ApiResponse(responseCode = "401", description = "Не авторизован"),
                     @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
-                    @ApiResponse(responseCode = "404", description = "Рейс не найден")})
+                    @ApiResponse(responseCode = "404", description = "Аэропорт не найден")})
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        var id = parameterExtractor.extractParameter(req, "id", false, Long::parseLong);
 
-        var flight = flightService.findById(id);
-
-        var flightDto = flightConverter.convert(flight);
+        var airports = airportService.findAll();
+        var airportDtos = airportConverter.convertAll(airports);
 
         resp.setContentType("application/json");
-        jsonHelper.writeBytes(resp.getOutputStream(), flightDto);
+        jsonHelper.writeBytes(resp.getOutputStream(), airportDtos);
     }
 }

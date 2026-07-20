@@ -24,10 +24,10 @@ class CreateFlightRequestConverterTest {
 
         assertNotNull(result);
         assertNull(result.getId());
-        assertEquals(100, result.getAllSeats());
+        assertEquals(100, result.getSeatsCount());
         assertEquals(90, result.getFreeSeats());
-        assertEquals(departureAirportCode, result.getDepartureAirportCode());
-        assertEquals(arrivalAirportCode, result.getArrivalAirportCode());
+        assertEquals(departureAirportCode, result.getDepartureAirportId());
+        assertEquals(arrivalAirportCode, result.getArrivalAirportId());
         assertEquals(departureDate, result.getDepartureDate());
         assertEquals(arrivalDate, result.getArrivalDate());
     }

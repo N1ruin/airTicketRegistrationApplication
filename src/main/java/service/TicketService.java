@@ -3,15 +3,15 @@ package service;
 import domain.Flight;
 import domain.Ticket;
 import domain.TicketStatus;
-import exception.EntityAlreadyExistException;
-import exception.EntityNotFoundException;
-import exception.ValidationException;
-import repository.TicketRepository;
+import exception.ApplicationException;
+import repository.impl.TicketRepository;
 import util.CurrentUserHolder;
 import util.TransactionHelper;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+
+import static jakarta.servlet.http.HttpServletResponse.*;
 
 public class TicketService {
     private final TransactionHelper transactionHelper;
@@ -49,7 +49,7 @@ public class TicketService {
             flightService.update(flight);
             ticket.setTicketStatus(TicketStatus.PENDING);
 
-            passengerService.addFavoriteAirport(passengerId, flight.getDepartureAirportCode());
+            passengerService.addFavoriteAirport(passengerId, flight.getDepartureAirportId());
             ticket.setPurchaseDate(ZonedDateTime.now());
 
             return ticketRepository.create(ticket);
@@ -57,29 +57,30 @@ public class TicketService {
     }
 
     public List<Ticket> findAll() {
-        return ticketRepository.findAll();
+        var isAdmin = CurrentUserHolder.isAdmin();
+
+        return isAdmin
+                ? ticketRepository.findAll()
+                : ticketRepository.findAllByUserId(CurrentUserHolder.getCurrentUserId());
     }
 
-    public List<Ticket> findAllByCurrentUserId() {
-        return ticketRepository.findAllByUserId(CurrentUserHolder.getCurrentUserId());
-    }
-
-    public void refundByCurrentUser(Long id) {
+    public void refundTicket(Long id) {
         transactionHelper.executeInTransaction(() -> {
             var currentUserId = CurrentUserHolder.getCurrentUserId();
-            var ticket = ticketRepository.findByIdAndCurrentUserId(id, currentUserId)
-                    .orElseThrow(() -> new EntityNotFoundException("Ticket not found. ID: %d".formatted(id)));
+            var isAdmin = CurrentUserHolder.isAdmin();
 
-            passengerService.findByIdAndUserId(ticket.getPassengerId(), currentUserId);
+            Ticket ticket;
+            if (isAdmin) {
+                ticket = ticketRepository.findById(id)
+                        .orElseThrow(() -> new ApplicationException("Ticket not found. ID: %d"
+                                .formatted(id), SC_NOT_FOUND));
+            } else {
+                ticket = ticketRepository.findByIdAndCurrentUserId(id, currentUserId)
+                        .orElseThrow(() -> new ApplicationException("Ticket not found or access denied. ID: %d"
+                                .formatted(id), SC_FORBIDDEN));
 
-            processRefund(ticket);
-        });
-    }
-
-    public void refund(Long id) {
-        transactionHelper.executeInTransaction(() -> {
-            var ticket = ticketRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Ticket not found. ID: %d".formatted(id)));
+                passengerService.findByIdAndUserId(ticket.getPassengerId(), currentUserId);
+            }
 
             processRefund(ticket);
         });
@@ -93,15 +94,15 @@ public class TicketService {
         ticketRepository.findByFlightIdAndPassengerId(flightId, passengerId)
                 .filter(existing -> existing.getTicketStatus() != TicketStatus.REFUNDED)
                 .ifPresent(existing -> {
-                    throw new EntityAlreadyExistException("Passenger already has an active ticket for this flight");
+                    throw new ApplicationException("Passenger already has an active ticket for this flight", SC_CONFLICT);
                 });
     }
 
     private void checkSeatAvailable(Long flightId, Integer seatNumber) {
         ticketRepository.findByFlightIdAndSeatNumber(flightId, seatNumber)
                 .ifPresent(existing -> {
-                    throw new EntityAlreadyExistException("Seat is already taken. Number: %d"
-                            .formatted(seatNumber));
+                    throw new ApplicationException("Seat is already taken. Number: %d"
+                            .formatted(seatNumber), SC_CONFLICT);
                 });
     }
 
@@ -109,7 +110,7 @@ public class TicketService {
         var freeSeats = flight.getFreeSeats();
 
         if (freeSeats <= 0) {
-            throw new ValidationException("No free seats available for this flight");
+            throw new ApplicationException("No free seats available for this flight", SC_CONFLICT);
         }
     }
 
@@ -121,8 +122,8 @@ public class TicketService {
 
         var flight = flightService.findById(ticket.getFlightId());
 
-        var airport = airportService.findById(flight.getDepartureAirportCode());
-        passengerService.removeFavoriteAirport(passengerId, airport.getCode());
+        var airport = airportService.findById(flight.getDepartureAirportId());
+        passengerService.removeFavoriteAirport(passengerId, airport.getId());
 
         flight.setFreeSeats(flight.getFreeSeats() + 1);
         flightService.update(flight);

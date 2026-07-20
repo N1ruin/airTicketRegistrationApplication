@@ -1,8 +1,6 @@
 package unit.service;
 
 import domain.*;
-import exception.EntityAlreadyExistException;
-import exception.EntityNotFoundException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import repository.TicketRepository;
 import service.AirportService;
 import service.FlightService;
 import service.PassengerService;
@@ -68,7 +65,7 @@ class TicketServiceTest {
         var flight = new Flight();
         flight.setId(20L);
         flight.setFreeSeats(50);
-        flight.setDepartureAirportCode("MSQ");
+        flight.setDepartureAirportId("MSQ");
         var ticket = new Ticket();
         ticket.setPassengerId(10L);
         ticket.setFlightId(20L);
@@ -136,7 +133,7 @@ class TicketServiceTest {
         var flight = new Flight();
         flight.setId(20L);
         flight.setFreeSeats(1);
-        flight.setDepartureAirportCode("MSQ");
+        flight.setDepartureAirportId("MSQ");
         var ticket = new Ticket();
         ticket.setPassengerId(10L);
         ticket.setFlightId(20L);
@@ -161,7 +158,7 @@ class TicketServiceTest {
         var flight = new Flight();
         flight.setId(20L);
         flight.setFreeSeats(10);
-        flight.setDepartureAirportCode("MSQ");
+        flight.setDepartureAirportId("MSQ");
         var oldTicket = new Ticket();
         oldTicket.setTicketStatus(TicketStatus.REFUNDED);
         var newTicket = new Ticket();
@@ -191,7 +188,7 @@ class TicketServiceTest {
         passenger.setUserId(1L);
         var flight = new Flight();
         flight.setFreeSeats(10);
-        flight.setDepartureAirportCode("JFK");
+        flight.setDepartureAirportId("JFK");
         var ticket = new Ticket();
         ticket.setId(ticketId);
         ticket.setPassengerId(10L);
@@ -276,7 +273,7 @@ class TicketServiceTest {
 
         var flight = new Flight();
         flight.setFreeSeats(10);
-        flight.setDepartureAirportCode("JFK");
+        flight.setDepartureAirportId("JFK");
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
         when(flightService.findById(20L)).thenReturn(flight);

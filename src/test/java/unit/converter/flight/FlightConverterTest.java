@@ -18,10 +18,10 @@ class FlightConverterTest {
         var arrivalDate = ZonedDateTime.now().plusDays(2);
         var flight = new Flight();
         flight.setId(1L);
-        flight.setAllSeats(100);
+        flight.setSeatsCount(100);
         flight.setFreeSeats(90);
-        flight.setDepartureAirportCode("SVO");
-        flight.setArrivalAirportCode("DME");
+        flight.setDepartureAirportId("SVO");
+        flight.setArrivalAirportId("DME");
         flight.setDepartureDate(departureDate);
         flight.setArrivalDate(arrivalDate);
 
@@ -29,10 +29,10 @@ class FlightConverterTest {
 
         assertNotNull(result);
         assertEquals(1L, result.id());
-        assertEquals(100, result.allSeats());
+        assertEquals(100, result.seatsCount());
         assertEquals(90, result.freeSeats());
-        assertEquals("SVO", result.departureAirportCode());
-        assertEquals("DME", result.arrivalAirportCode());
+        assertEquals("SVO", result.departureAirportId());
+        assertEquals("DME", result.arrivalAirportId());
         assertEquals(departureDate, result.departureDate());
         assertEquals(arrivalDate, result.arrivalDate());
     }
@@ -40,19 +40,19 @@ class FlightConverterTest {
     @Test
     void convertFlightListToFlightDtoListSuccess() {
         var flightOne = new Flight();
-        flightOne.setDepartureAirportCode("SVO");
-        flightOne.setArrivalAirportCode("DME");
+        flightOne.setDepartureAirportId("SVO");
+        flightOne.setArrivalAirportId("DME");
         var flightTwo = new Flight();
-        flightTwo.setDepartureAirportCode("LED");
-        flightTwo.setArrivalAirportCode("MSQ");
+        flightTwo.setDepartureAirportId("LED");
+        flightTwo.setArrivalAirportId("MSQ");
 
         var dtoList = flightConverter.convertAll(List.of(flightOne, flightTwo));
 
         assertNotNull(dtoList);
         assertEquals(2, dtoList.size());
-        assertEquals("SVO", dtoList.get(0).departureAirportCode());
-        assertEquals("DME", dtoList.get(0).arrivalAirportCode());
-        assertEquals("LED", dtoList.get(1).departureAirportCode());
-        assertEquals("MSQ", dtoList.get(1).arrivalAirportCode());
+        assertEquals("SVO", dtoList.get(0).departureAirportId());
+        assertEquals("DME", dtoList.get(0).arrivalAirportId());
+        assertEquals("LED", dtoList.get(1).departureAirportId());
+        assertEquals("MSQ", dtoList.get(1).arrivalAirportId());
     }
 }

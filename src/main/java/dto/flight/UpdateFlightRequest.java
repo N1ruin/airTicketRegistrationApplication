@@ -2,10 +2,7 @@ package dto.flight;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.*;
 import validation.annotation.ValidDateRange;
 
 import java.time.ZonedDateTime;
@@ -13,31 +10,31 @@ import java.time.ZonedDateTime;
 @Schema(description = "Запрос на обновление данных существующего рейса")
 @ValidDateRange(startDate = "departureDate", endDate = "arrivalDate")
 public record UpdateFlightRequest(
-        @Schema(description = "Id рейса, данные которого необходимо обновить", example = "123",
+        @Schema(description = "ID рейса, данные которого необходимо обновить", example = "123",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Flight id is required")
         @Positive(message = "Flight id must be positive")
         Long id,
 
         @Schema(description = "Новое общее количество мест", example = "150", nullable = true)
-        @NotNull(message = "All seats count is required")
-        @Positive(message = "All seats must be positive")
-        Integer allSeats,
+        @NotNull(message = "Seats count is required")
+        @Positive(message = "Seats must be positive")
+        int seatsCount,
 
         @Schema(description = "Обновленное количество свободных мест", example = "10", nullable = true)
         @NotNull(message = "Free seats count is required")
         @Positive(message = "Free seats must be positive")
-        Integer freeSeats,
+        int freeSeats,
 
-        @Schema(description = "Код нового аэропорта вылета", nullable = true)
-        @NotNull(message = "Departure airport code is required")
+        @Schema(description = "ID нового аэропорта вылета", nullable = true)
+        @NotEmpty(message = "Departure airport id is required")
         @Pattern(regexp = "^[A-Z]{3}$", message = "Code must be 3 uppercase letters")
-        String departureAirportCode,
+        String departureAirportId,
 
-        @Schema(description = "Код нового аэропорта прибытия", nullable = true)
-        @NotNull(message = "Arrival airport code is required")
+        @Schema(description = "ID нового аэропорта прибытия", nullable = true)
+        @NotEmpty(message = "Arrival airport id is required")
         @Pattern(regexp = "^[A-Z]{3}$", message = "Code must be 3 uppercase letters")
-        String arrivalAirportCode,
+        String arrivalAirportId,
 
         @Schema(description = "Новая дата и время вылета", example = "2024-11-20T16:30:00+03:00",
                 type = "string", pattern = "yyyy-MM-dd'T'HH:mm:ssXXX", nullable = true)

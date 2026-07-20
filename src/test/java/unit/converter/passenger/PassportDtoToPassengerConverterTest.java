@@ -1,8 +1,6 @@
 package unit.converter.passenger;
 
-import converter.passenger.PassportDtoToPassengerConverter;
 import converter.passsport.PassportConverter;
-import domain.Passport;
 import dto.passport.PassportDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

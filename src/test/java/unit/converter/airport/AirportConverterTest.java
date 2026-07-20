@@ -1,7 +1,6 @@
 package unit.converter.airport;
 
 import converter.airport.AirportConverter;
-import domain.Address;
 import domain.Airport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +19,7 @@ class AirportConverterTest {
     void convertAirportToDtoSuccess() {
         var address = mock(Address.class);
         var airport = new Airport();
-        airport.setCode("SVO");
+        airport.setId("SVO");
         airport.setName("Шереметьево");
         airport.setAddress(address);
         var addressId = 123L;
@@ -39,12 +38,12 @@ class AirportConverterTest {
     @Test
     void convertListAirportsSuccess() {
         var airportSVO = new Airport();
-        airportSVO.setCode("SVO");
+        airportSVO.setId("SVO");
         airportSVO.setName("Шереметьево");
         var svoAddress = mock(Address.class);
         airportSVO.setAddress(svoAddress);
         var airportDME = new Airport();
-        airportDME.setCode("DME");
+        airportDME.setId("DME");
         airportDME.setName("Домодедово");
         var dmeAddress = mock(Address.class);
         airportDME.setAddress(dmeAddress);

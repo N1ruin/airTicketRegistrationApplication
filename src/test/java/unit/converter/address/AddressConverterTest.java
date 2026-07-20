@@ -1,7 +1,5 @@
 package unit.converter.address;
 
-import converter.address.AddressConverter;
-import domain.Address;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

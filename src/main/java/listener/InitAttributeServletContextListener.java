@@ -4,13 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import converter.address.AddressConverter;
-import converter.address.AddressDtoConverter;
-import converter.airport.*;
-import converter.flight.*;
-import converter.passenger.*;
-import converter.passsport.PassportConverter;
-import converter.passsport.PassportDtoConverter;
+import converter.airport.AirportConverter;
+import converter.airport.AirportDtoConverter;
+import converter.airport.UpdateAirportRequestConverter;
+import converter.flight.CreateFlightRequestConverter;
+import converter.flight.FlightConverter;
+import converter.flight.UpdateFlightRequestConverter;
+import converter.passenger.PassengerDtoConverter;
+import converter.passenger.UpdatePassengerRequestConverter;
 import converter.ticket.CreateTicketRequestConverter;
 import converter.ticket.TicketDtoConverter;
 import converter.user.UserDtoConverter;
@@ -22,14 +23,13 @@ import jakarta.validation.ValidatorFactory;
 import mapper.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import util.ConnectionHelper;
-import util.TransactionHelper;
 import repository.impl.*;
 import security.PasswordEncoder;
 import service.*;
-import util.RequestParameterExtractor;
+import util.ConnectionHolder;
 import util.JsonHelper;
-import validation.service.RequestParameterValidationService;
+import util.RequestParameterExtractor;
+import util.TransactionHelper;
 import validation.service.ValidationService;
 
 import javax.sql.DataSource;
@@ -62,7 +62,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
         objectMapper.registerModule(new JavaTimeModule());
         var jsonUtil = new JsonHelper(objectMapper);
         context.setAttribute(JSON_HELPER, jsonUtil);
-        var connectionHelper = new ConnectionHelper(dataSource);
+        var connectionHelper = new ConnectionHolder(dataSource);
         context.setAttribute(CONNECTION_HELPER, connectionHelper);
         var requestParameterExtractor = new RequestParameterExtractor();
         context.setAttribute(REQUEST_PARAMETER_EXTRACTOR, requestParameterExtractor);
@@ -73,7 +73,7 @@ public class InitAttributeServletContextListener implements ServletContextListen
 
         var userResultSetMapper = new UserResultSetMapper();
         context.setAttribute(USER_RESULT_SET_MAPPER, connectionHelper);
-        var userRepository = new UserRepositoryImpl(connectionHelper, userResultSetMapper);
+        var userRepository = new UserRepository(connectionHelper, userResultSetMapper);
         context.setAttribute(USER_REPOSITORY, connectionHelper);
         var passwordEncoder = new PasswordEncoder();
         context.setAttribute(PASSWORD_ENCODER, passwordEncoder);
@@ -84,56 +84,31 @@ public class InitAttributeServletContextListener implements ServletContextListen
         var userService = new UserService(userRepository, transactionHelper, passwordEncoder);
         context.setAttribute(USER_SERVICE, userService);
 
-        var addressResultSetMapper = new AddressResultSetMapper();
-        context.setAttribute(ADDRESS_RESULT_SET_MAPPER, addressResultSetMapper);
-        var addressConverter = new AddressConverter();
-        context.setAttribute(ADDRESS_CONVERTER, addressConverter);
-        var addressDtoConverter = new AddressDtoConverter();
-        context.setAttribute(ADDRESS_DTO_CONVERTER, addressDtoConverter);
-        var addressRepository = new AddressRepositoryImpl(connectionHelper, addressResultSetMapper);
-        context.setAttribute(ADDRESS_REPOSITORY, connectionHelper);
-        var addressService = new AddressService(transactionHelper, addressRepository);
-        context.setAttribute(ADDRESS_SERVICE, addressService);
-
-        var airportResultSetMapper = new AirportResultSetMapper(addressResultSetMapper);
+        var airportResultSetMapper = new AirportResultSetMapper();
         context.setAttribute(AIRPORT_RESULT_SET_MAPPER, connectionHelper);
-        var airportRepository = new AirportRepositoryImpl(connectionHelper, airportResultSetMapper);
+        var airportRepository = new AirportRepository(connectionHelper, airportResultSetMapper);
         context.setAttribute(AIRPORT_REPOSITORY, connectionHelper);
         var airportConverter = new AirportConverter();
         context.setAttribute(AIRPORT_CONVERTER, airportConverter);
-        var createAirportRequestConverter = new CreateAirportRequestConverter(addressDtoConverter);
-        context.setAttribute(CREATE_AIRPORT_REQUEST_CONVERTER, createAirportRequestConverter);
-        var airportService = new AirportService(addressService, airportRepository, transactionHelper);
+        var airportDtoConverter = new AirportDtoConverter();
+        context.setAttribute(AIRPORT_DTO_CONVERTER, airportDtoConverter);
+        var airportService = new AirportService(airportRepository, transactionHelper);
         context.setAttribute(AIRPORT_SERVICE, airportService);
-        var updateAirportRequestConverter = new UpdateAirportRequestConverter(addressDtoConverter);
+        var updateAirportRequestConverter = new UpdateAirportRequestConverter();
         context.setAttribute(UPDATE_AIRPORT_REQUEST_CONVERTER, updateAirportRequestConverter);
-        var favoriteAirportsRepository = new FavoriteAirportsRepositoryImpl(connectionHelper, airportResultSetMapper);
+        var favoriteAirportsRepository = new FavoriteAirportsRepository(connectionHelper);
         context.setAttribute(FAVORITE_AIRPORTS_REPOSITORY, favoriteAirportsRepository);
 
-        var passportResultSetMapper = new PassportResultSetMapper();
-        context.setAttribute(PASSPORT_RESULT_SET_MAPPER, passportResultSetMapper);
-        var passportDtoConverter = new PassportDtoConverter();
-        context.setAttribute(PASSPORT_DTO_CONVERTER, passportDtoConverter);
-        var passportConverter = new PassportConverter();
-        context.setAttribute(PASSPORT_CONVERTER, passportConverter);
-        context.setAttribute(PASSPORT_RESULT_SET_MAPPER, connectionHelper);
-        var passportRepository = new PassportRepositoryImpl(connectionHelper, passportResultSetMapper);
-        context.setAttribute(PASSPORT_REPOSITORY, connectionHelper);
-        var passportService = new PassportService(transactionHelper, passportRepository);
-        context.setAttribute(PASSPORT_SERVICE, passportService);
-
-        var passengerResultSetMapper = new PassengerResultSetMapper(passportResultSetMapper);
+        var passengerResultSetMapper = new PassengerResultSetMapper();
         context.setAttribute(PASSENGER_RESULT_SET_MAPPER, connectionHelper);
-        var passengerRepository = new PassengerRepositoryImpl(connectionHelper, passengerResultSetMapper);
+        var passengerRepository = new PassengerRepository(connectionHelper, passengerResultSetMapper);
         context.setAttribute(PASSENGER_REPOSITORY, connectionHelper);
         var passengerService = new PassengerService(passengerRepository, favoriteAirportsRepository,
-                airportService, passportService, transactionHelper);
+                airportService, transactionHelper);
         context.setAttribute(PASSENGER_SERVICE, passengerService);
-        var createPassengerRequestConverter = new PassportDtoToPassengerConverter(passportConverter);
-        context.setAttribute(CREATE_PASSENGER_REQUEST_CONVERTER, createPassengerRequestConverter);
         var passengerDtoConverter = new PassengerDtoConverter();
         context.setAttribute(PASSENGER_DTO_CONVERTER, passengerDtoConverter);
-        var updatePassengerRequestConverter = new UpdatePassengerRequestConverter(passportConverter);
+        var updatePassengerRequestConverter = new UpdatePassengerRequestConverter();
         context.setAttribute(UPDATE_PASSENGER_REQUEST_CONVERTER, updatePassengerRequestConverter);
 
         var createFlightRequestConverter = new CreateFlightRequestConverter();
@@ -144,14 +119,14 @@ public class InitAttributeServletContextListener implements ServletContextListen
         context.setAttribute(UPDATE_FLIGHT_REQUEST_CONVERTER, updateFlightRequestConverter);
         var flightResultSetMapper = new FlightResultSetMapper();
         context.setAttribute(FLIGHT_RESULT_SET_MAPPER, connectionHelper);
-        var flightRepository = new FlightRepositoryImpl(flightResultSetMapper, connectionHelper);
+        var flightRepository = new FlightRepository(flightResultSetMapper, connectionHelper);
         context.setAttribute(FLIGHT_REPOSITORY, connectionHelper);
         var flightService = new FlightService(flightRepository, transactionHelper, airportService);
         context.setAttribute(FLIGHT_SERVICE, flightService);
 
         var ticketResultSetMapper = new TicketResultSetMapper();
         context.setAttribute(TICKET_RESULT_SET_MAPPER, connectionHelper);
-        var ticketRepository = new TicketRepositoryImpl(connectionHelper, ticketResultSetMapper);
+        var ticketRepository = new TicketRepository(connectionHelper, ticketResultSetMapper);
         context.setAttribute(TICKET_REPOSITORY, connectionHelper);
         var ticketService = new TicketService(transactionHelper, ticketRepository, passengerService, airportService,
                 flightService);

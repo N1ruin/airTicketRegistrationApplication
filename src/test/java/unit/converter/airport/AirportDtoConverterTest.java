@@ -16,7 +16,7 @@ class AirportDtoConverterTest {
         var result = airportDtoConverter.convert(airportDto);
 
         assertNotNull(result);
-        assertEquals("SVO", result.getCode());
+        assertEquals("SVO", result.getId());
         assertEquals("Шереметьево", result.getName());
         assertNull(result.getAddress());
     }

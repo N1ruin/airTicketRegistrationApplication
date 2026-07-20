@@ -10,10 +10,10 @@ public class FlightDtoConverter implements Converter<FlightDto, Flight> {
         var flight = new Flight();
 
         flight.setId(flightDto.id());
-        flight.setAllSeats(flightDto.allSeats());
+        flight.setSeatsCount(flightDto.seatsCount());
         flight.setFreeSeats(flightDto.freeSeats());
-        flight.setDepartureAirportCode(flightDto.departureAirportCode());
-        flight.setArrivalAirportCode(flightDto.arrivalAirportCode());
+        flight.setDepartureAirportId(flightDto.departureAirportId());
+        flight.setArrivalAirportId(flightDto.arrivalAirportId());
         flight.setDepartureDate(flightDto.departureDate());
         flight.setArrivalDate(flightDto.arrivalDate());
 

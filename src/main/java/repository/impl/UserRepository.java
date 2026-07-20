@@ -1,10 +1,10 @@
 package repository.impl;
 
 import domain.User;
-import exception.RepositoryException;
+import exception.ApplicationException;
 import mapper.UserResultSetMapper;
-import repository.UserRepository;
-import util.ConnectionHelper;
+import repository.Repository;
+import util.ConnectionHolder;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -13,28 +13,30 @@ import java.sql.Types;
 import java.util.List;
 import java.util.Optional;
 
-public class UserRepositoryImpl implements UserRepository {
+import static jakarta.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+
+public class UserRepository implements Repository<User, Long> {
     private static final String SELECT_QUERY = "SELECT * FROM tickets_application.users";
-    private final ConnectionHelper connectionHelper;
+
+    private final ConnectionHolder connectionHolder;
     private final UserResultSetMapper resultSetMapper;
 
-    public UserRepositoryImpl(ConnectionHelper connectionHelper, UserResultSetMapper resultSetMapper) {
-        this.connectionHelper = connectionHelper;
+    public UserRepository(ConnectionHolder connectionHolder, UserResultSetMapper resultSetMapper) {
+        this.connectionHolder = connectionHolder;
         this.resultSetMapper = resultSetMapper;
     }
 
-    @Override
     public Optional<User> findByEmail(String email) {
         var sql = SELECT_QUERY + " WHERE email = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, email);
             var resultSet = preparedStatement.executeQuery();
 
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("User find by email error", e);
+            throw new ApplicationException("User find by email error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -50,7 +52,7 @@ public class UserRepositoryImpl implements UserRepository {
                 RETURNING id;
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(user, preparedStatement);
 
@@ -61,14 +63,14 @@ public class UserRepositoryImpl implements UserRepository {
 
             return user;
         } catch (SQLException e) {
-            throw new RepositoryException("User creating error", e);
+            throw new ApplicationException("User creating error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
     @Override
     public Optional<User> findById(Long id) {
         var sql = SELECT_QUERY + " WHERE id = ?";
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -76,19 +78,19 @@ public class UserRepositoryImpl implements UserRepository {
 
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("User find by id error", e);
+            throw new ApplicationException("User find by id error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
     @Override
     public List<User> findAll() {
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(SELECT_QUERY)) {
             var resultSet = preparedStatement.executeQuery();
 
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("User find all error", e);
+            throw new ApplicationException("User find all error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -104,7 +106,7 @@ public class UserRepositoryImpl implements UserRepository {
                 WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             setStatementFields(user, preparedStatement);
 
@@ -120,7 +122,7 @@ public class UserRepositoryImpl implements UserRepository {
 
             return user;
         } catch (SQLException e) {
-            throw new RepositoryException("User update error", e);
+            throw new ApplicationException("User update error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -128,13 +130,13 @@ public class UserRepositoryImpl implements UserRepository {
     public void deleteById(Long id) {
         var sql = "DELETE FROM tickets_application.users WHERE id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new RepositoryException("User delete error", e);
+            throw new ApplicationException("User delete error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 

@@ -16,7 +16,7 @@ public record CreateTicketRequest(
         @Schema(description = "Номер места", example = "24")
         @NotNull(message = "Seat number is required")
         @Positive(message = "Seat number must be positive")
-        Integer seatNumber,
+        int seatNumber,
 
         @Schema(description = "Id рейса")
         @NotNull(message = "Flight id is required")
@@ -31,10 +31,10 @@ public record CreateTicketRequest(
         @Schema(description = "Вес регистрируемого багажа (кг)", example = "23.0")
         @NotNull(message = "Baggage weight is required")
         @DecimalMin(value = "0.0", message = "Baggage weight cannot be negative")
-        Double baggageWeight,
+        double baggageWeight,
 
         @Schema(description = "Вес ручной клади (кг)", example = "10.0")
         @NotNull(message = "Carry-on baggage weight is required")
         @DecimalMin(value = "0.0", message = "Carry-on baggage weight cannot be negative")
-        Double carryOnBaggageWeight) {
+        double carryOnBaggageWeight) {
 }

@@ -10,11 +10,14 @@ public class CurrentUserHolderContextListener implements ServletRequestListener 
     @Override
     public void requestInitialized(ServletRequestEvent sre) {
         var request = (HttpServletRequest) sre.getServletRequest();
-        var user = (UserDto) request.getSession().getAttribute("user");
 
-        if (user != null) {
-            CurrentUserHolder.setCurrentUserId(user.id());
-            CurrentUserHolder.setCurrentUserRole(user.role());
+        var session = request.getSession(false);
+        if (session != null) {
+            var user = (UserDto) session.getAttribute("user");
+            if (user != null && !user.isBlocked()) {
+                CurrentUserHolder.setCurrentUserId(user.id());
+                CurrentUserHolder.setCurrentUserRole(user.role());
+            }
         }
     }
 

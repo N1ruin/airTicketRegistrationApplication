@@ -1,5 +1,6 @@
 package servlet;
 
+import exception.ApplicationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -17,33 +18,31 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.UserService;
 import util.RequestParameterExtractor;
-import validation.service.RequestParameterValidationService;
 
 import static constant.ServletContextAttributeKey.*;
+import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 
-@WebServlet("/admin/block")
-@Path("/ticket-app/admin/block")
-public class BlockingServlet extends HttpServlet {
-    private static final Logger log = LogManager.getLogger(BlockingServlet.class);
+@WebServlet("/admin/api/v1/user/*")
+@Path("/ticket-app/admin/user/*")
+public class UserAdminServlet extends HttpServlet {
+    private static final Logger log = LogManager.getLogger(UserAdminServlet.class);
+
     private UserService userService;
     private RequestParameterExtractor requestParameterExtractor;
-    private RequestParameterValidationService requestParameterValidationService;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        log.info("Servlet {} initialization started", getClass().getSimpleName());
+        log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
         userService = (UserService) context.getAttribute(USER_SERVICE);
         requestParameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
-        requestParameterValidationService =
-                (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
 
-        log.info("Servlet {} initialization finished", getClass().getSimpleName());
+        log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
-    @Operation(tags = {"Users"}, summary = "Блокировка пользователя по id (инвалидация сессии)",
+    @Operation(tags = {"Users"}, summary = "Блокировка/разблокировка пользователя по id",
             description = "Блокирует пользователя",
             parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "ID пользователя", example = "1",
                     schema = @Schema(type = "integer", format = "int64"))},
@@ -55,13 +54,19 @@ public class BlockingServlet extends HttpServlet {
     @PATCH
     @Override
     public void doPatch(@Parameter(hidden = true) HttpServletRequest req,
-                      @Parameter(hidden = true) HttpServletResponse resp) {
-        var id = requestParameterExtractor.extractId(req, true);
+                        @Parameter(hidden = true) HttpServletResponse resp) {
+        var id = requestParameterExtractor.extractParameter(req, "id", true, Long::parseLong);
+        var action = req.getPathInfo();
 
-        requestParameterValidationService.validateId(id);
+        if (action == null || action.equals("/")) {
+            throw new ApplicationException("Action is required. Use /block or /unblock", SC_BAD_REQUEST);
+        }
 
-        userService.block(id);
-
-        resp.setStatus(HttpServletResponse.SC_OK);
+        switch (action) {
+            case "/block" -> userService.block(id);
+            case "/unblock" -> userService.unblock(id);
+            default -> throw new ApplicationException("Unknown action: " + action + ". Use /block or /unblock",
+                    SC_BAD_REQUEST);
+        }
     }
 }

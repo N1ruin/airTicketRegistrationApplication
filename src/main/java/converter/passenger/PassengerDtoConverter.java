@@ -7,10 +7,18 @@ import dto.passenger.PassengerDto;
 public class PassengerDtoConverter implements Converter<Passenger, PassengerDto> {
     @Override
     public PassengerDto convert(Passenger passenger) {
-        var passportId = passenger.getPassport().getId();
-
-        return new PassengerDto(passenger.getId(),
-                passportId,
+        return new PassengerDto(
+                passenger.getId(),
+                passenger.getFirstName(),
+                passenger.getLastName(),
+                passenger.getFatherName(),
+                passenger.isMale(),
+                passenger.getPassportSeries(),
+                passenger.getPassportNumber(),
+                passenger.getCitizenship(),
+                passenger.getBirthDate(),
+                passenger.getPassportIssueDate(),
+                passenger.getPassportExpiredDate(),
                 passenger.getUserId());
     }
 }

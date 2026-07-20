@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.OutputStream;
+
 public class JsonHelper {
     private static final Logger log = LogManager.getLogger(JsonHelper.class);
     private final ObjectMapper objectMapper;
@@ -12,9 +14,9 @@ public class JsonHelper {
         this.objectMapper = objectMapper;
     }
 
-    public String toJson(Object object) {
+    public void writeBytes(OutputStream outputStream, Object object) {
         try {
-            return objectMapper.writeValueAsString(object);
+            objectMapper.writeValue(outputStream, object);
         } catch (Exception e) {
             log.error("Serialization error", e);
             throw new RuntimeException("Failed to serialize to JSON", e);

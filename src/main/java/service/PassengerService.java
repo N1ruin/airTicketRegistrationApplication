@@ -1,38 +1,33 @@
 package service;
 
 import domain.Passenger;
-import exception.EntityNotFoundException;
-import repository.FavoriteAirportsRepository;
-import repository.PassengerRepository;
+import exception.ApplicationException;
+import repository.impl.FavoriteAirportsRepository;
+import repository.impl.PassengerRepository;
 import util.CurrentUserHolder;
 import util.TransactionHelper;
 
 import java.util.List;
 
+import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+
 public class PassengerService {
     private final PassengerRepository passengerRepository;
     private final FavoriteAirportsRepository favoriteAirportsRepository;
     private final AirportService airportService;
-    private final PassportService passportService;
     private final TransactionHelper transactionHelper;
 
     public PassengerService(PassengerRepository passengerRepository,
                             FavoriteAirportsRepository favoriteAirportsRepository, AirportService airportService,
-                            PassportService passportService, TransactionHelper transactionHelper) {
+                            TransactionHelper transactionHelper) {
         this.passengerRepository = passengerRepository;
         this.favoriteAirportsRepository = favoriteAirportsRepository;
         this.airportService = airportService;
-        this.passportService = passportService;
         this.transactionHelper = transactionHelper;
     }
 
     public Passenger create(Passenger passenger) {
-        return transactionHelper.executeInTransaction(() -> {
-            var createdPassport = passportService.create(passenger.getPassport());
-            passenger.setPassport(createdPassport);
-
-            return passengerRepository.create(passenger);
-        });
+        return transactionHelper.executeInTransaction(() -> passengerRepository.create(passenger));
     }
 
     public List<Passenger> findAllByUserId(Long userId) {
@@ -41,7 +36,7 @@ public class PassengerService {
 
     public Passenger findById(Long id) {
         return passengerRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Passenger not found. ID: %d".formatted(id)));
+                .orElseThrow(() -> new ApplicationException("Passenger not found. ID: %d".formatted(id), SC_NOT_FOUND));
     }
 
     public List<Passenger> findAll() {
@@ -52,9 +47,7 @@ public class PassengerService {
         return transactionHelper.executeInTransaction(() -> {
             var existing = findByIdAndUserId(passenger.getId(), CurrentUserHolder.getCurrentUserId());
 
-            var updatedPassport = passportService.update(passenger.getPassport(), passenger.getId());
-
-            existing.setPassport(updatedPassport);
+            updatePassengerData(existing, passenger);
 
             return existing;
         });
@@ -62,9 +55,12 @@ public class PassengerService {
 
     public void delete(Long id) {
         transactionHelper.executeInTransaction(() -> {
-            var passenger = findByIdAndUserId(id, CurrentUserHolder.getCurrentUserId());
+            var existing = passengerRepository.findById(id);
 
-            passportService.deleteById(passenger.getPassport().getId());
+            if (existing.isEmpty()) {
+                throw new ApplicationException("Passenger not found. ID: %d".formatted(id), SC_NOT_FOUND);
+            }
+
             passengerRepository.deleteById(id);
         });
     }
@@ -75,7 +71,7 @@ public class PassengerService {
 
             findByIdAndUserId(passengerId, CurrentUserHolder.getCurrentUserId());
 
-            favoriteAirportsRepository.addFavorite(passengerId, airport.getCode());
+            favoriteAirportsRepository.addFavorite(passengerId, airport.getId());
         });
     }
 
@@ -87,7 +83,20 @@ public class PassengerService {
 
     public Passenger findByIdAndUserId(Long id, Long userId) {
         return passengerRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new EntityNotFoundException("Passenger not found or unavailable. ID: %d"
-                        .formatted(id)));
+                .orElseThrow(() -> new ApplicationException("Passenger not found or unavailable. ID: %d"
+                        .formatted(id), SC_NOT_FOUND));
+    }
+
+    public void updatePassengerData(Passenger existing, Passenger newPassengerData) {
+        existing.setPassportSeries(newPassengerData.getPassportSeries());
+        existing.setPassportNumber(newPassengerData.getPassportNumber());
+        existing.setCitizenship(newPassengerData.getCitizenship());
+        existing.setFirstName(newPassengerData.getFirstName());
+        existing.setLastName(newPassengerData.getLastName());
+        existing.setFatherName(newPassengerData.getFatherName());
+        existing.setBirthDate(newPassengerData.getBirthDate());
+        existing.setMale(newPassengerData.isMale());
+        existing.setPassportIssueDate(newPassengerData.getPassportIssueDate());
+        existing.setPassportExpiredDate(newPassengerData.getPassportExpiredDate());
     }
 }

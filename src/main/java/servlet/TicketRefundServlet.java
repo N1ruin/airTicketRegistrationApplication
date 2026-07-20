@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,32 +14,27 @@ import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.TicketService;
-import util.CurrentUserHolder;
 import util.RequestParameterExtractor;
-import validation.service.RequestParameterValidationService;
 
 import static constant.ServletContextAttributeKey.*;
 
-@WebServlet("/api/v1/ticket/refund")
 @Path("/ticket-app/api/v1/ticket/refund")
 public class TicketRefundServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(TicketRefundServlet.class);
+
     private TicketService ticketService;
     private RequestParameterExtractor parameterExtractor;
-    private RequestParameterValidationService requestParameterValidationService;
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization started", getClass().getSimpleName());
+        log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
         ticketService = (TicketService) context.getAttribute(TICKET_SERVICE);
         parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
-        requestParameterValidationService =
-                (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
 
-        log.info("Servlet {} initialization finished", getClass().getSimpleName());
+        log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @PATCH
@@ -56,16 +50,8 @@ public class TicketRefundServlet extends HttpServlet {
     @Override
     public void doPatch(@Parameter(hidden = true) HttpServletRequest req,
                         @Parameter(hidden = true) HttpServletResponse resp) {
-        var id = parameterExtractor.extractId(req, true);
+        var id = parameterExtractor.extractParameter(req, "id", true, Long::parseLong);
 
-        requestParameterValidationService.validateId(id);
-
-        if (CurrentUserHolder.isAdmin()) {
-            ticketService.refund(id);
-        } else {
-            ticketService.refundByCurrentUser(id);
-        }
-
-        resp.setStatus(HttpServletResponse.SC_OK);
+        ticketService.refundTicket(id);
     }
 }

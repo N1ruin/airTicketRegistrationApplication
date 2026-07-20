@@ -8,14 +8,15 @@ import java.util.function.Supplier;
 
 public class TransactionHelper {
     private static final Logger log = LogManager.getLogger(TransactionHelper.class);
-    private final ConnectionHelper connectionHelper;
 
-    public TransactionHelper(ConnectionHelper connectionHelper) {
-        this.connectionHelper = connectionHelper;
+    private final ConnectionHolder connectionHolder;
+
+    public TransactionHelper(ConnectionHolder connectionHolder) {
+        this.connectionHolder = connectionHolder;
     }
 
     public <T> T executeInTransaction(Supplier<T> action) {
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         var isOuterTransaction = false;
         try {
             if (connection.getAutoCommit()) {
@@ -39,7 +40,7 @@ public class TransactionHelper {
                 e.addSuppressed(rollbackEx);
             }
 
-            connectionHelper.clearConnection();
+            connectionHolder.clearConnection();
 
             if (e instanceof RuntimeException runtimeException) {
                 throw runtimeException;

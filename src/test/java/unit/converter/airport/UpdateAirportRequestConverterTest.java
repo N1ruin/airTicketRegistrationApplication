@@ -1,8 +1,6 @@
 package unit.converter.airport;
 
-import converter.address.AddressDtoConverter;
 import converter.airport.UpdateAirportRequestConverter;
-import domain.Address;
 import dto.address.AddressDto;
 import dto.airport.UpdateAirportRequest;
 import org.junit.jupiter.api.Test;
@@ -33,7 +31,7 @@ class UpdateAirportRequestConverterTest {
 
         assertNotNull(result);
         assertEquals("Шереметьево", result.getName());
-        assertTrue(result.isWorked());
+        assertTrue(result.isActive());
         assertEquals(addressMock, result.getAddress());
         verify(addressDtoConverter).convert(addressDtoMock);
     }

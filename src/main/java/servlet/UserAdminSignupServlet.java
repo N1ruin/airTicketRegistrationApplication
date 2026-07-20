@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,14 +25,13 @@ import util.JsonHelper;
 import validation.service.ValidationService;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import static constant.ServletContextAttributeKey.*;
 
-@WebServlet("/admin/signup")
 @Path("/ticket-app/admin/signup")
 public class UserAdminSignupServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(UserAdminSignupServlet.class);
+
     private UserService userService;
     private JsonHelper jsonHelper;
     private UserSignUpRequestConverter userSignUpRequestConverter;
@@ -42,7 +40,7 @@ public class UserAdminSignupServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        log.info("Servlet {} initialization started", getClass().getSimpleName());
+        log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
@@ -52,7 +50,7 @@ public class UserAdminSignupServlet extends HttpServlet {
         userDtoConverter = (UserDtoConverter) context.getAttribute(USER_DTO_CONVERTER);
         validationService = (ValidationService) context.getAttribute(VALIDATION_SERVICE);
 
-        log.info("Servlet {} initialization finished", getClass().getSimpleName());
+        log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @Operation(tags = {"Users"}, summary = "Регистрация нового администратора",
@@ -78,10 +76,10 @@ public class UserAdminSignupServlet extends HttpServlet {
 
         var savedUser = userService.signUp(user, Role.ADMIN);
 
-        var response = userDtoConverter.convert(savedUser);
+        var dto = userDtoConverter.convert(savedUser);
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
         resp.setContentType("application/json");
-        resp.getOutputStream().write(jsonHelper.toJson(response).getBytes(StandardCharsets.UTF_8));
+        jsonHelper.writeBytes(resp.getOutputStream(), dto);
     }
 }

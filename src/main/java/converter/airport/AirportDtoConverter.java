@@ -9,8 +9,12 @@ public class AirportDtoConverter implements Converter<AirportDto, Airport> {
     public Airport convert(AirportDto dto) {
         var airport = new Airport();
 
+        airport.setId(dto.code());
         airport.setName(dto.name());
-        airport.setCode(dto.code());
+        airport.setCountry(dto.country());
+        airport.setCity(dto.city());
+        airport.setStreet(dto.street());
+        airport.setHouseNumber(dto.houseNumber());
 
         return airport;
     }

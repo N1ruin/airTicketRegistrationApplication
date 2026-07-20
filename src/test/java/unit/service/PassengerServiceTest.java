@@ -2,22 +2,16 @@ package unit.service;
 
 import domain.Airport;
 import domain.Passenger;
-import domain.Passport;
-import exception.EntityAlreadyExistException;
-import exception.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import repository.FavoriteAirportsRepository;
-import repository.PassengerRepository;
 import util.CurrentUserHolder;
 import util.TransactionHelper;
 import service.AirportService;
 import service.PassengerService;
-import service.PassportService;
 
 import java.util.List;
 import java.util.Optional;
@@ -177,7 +171,7 @@ class PassengerServiceTest {
         Long passengerId = 1L;
         String code = "MSQ";
         var airport = new Airport();
-        airport.setCode(code);
+        airport.setId(code);
         var passenger = new Passenger();
         passenger.setId(passengerId);
         when(airportService.findById(code)).thenReturn(airport);

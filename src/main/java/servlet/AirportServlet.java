@@ -1,6 +1,9 @@
 package servlet;
 
-import dto.airport.CreateAirportRequest;
+import converter.airport.AirportConverter;
+import converter.airport.AirportDtoConverter;
+import converter.airport.UpdateAirportRequestConverter;
+import dto.airport.AirportDto;
 import dto.airport.UpdateAirportRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,60 +13,59 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import converter.airport.*;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.AirportService;
-import util.CurrentUserHolder;
 import util.JsonHelper;
 import util.RequestParameterExtractor;
 import validation.service.ValidationService;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
 import static constant.ServletContextAttributeKey.*;
 
-@WebServlet("/api/v1/airport")
 @Path("/ticket-app/api/v1/airport")
 public class AirportServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(AirportServlet.class);
+
     private AirportService airportService;
-    private CreateAirportRequestConverter createAirportRequestConverter;
     private UpdateAirportRequestConverter updateAirportRequestConverter;
     private AirportConverter airportConverter;
+    private AirportDtoConverter airportDtoConverter;
     private ValidationService validationService;
     private JsonHelper jsonHelper;
     private RequestParameterExtractor parameterExtractor;
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization started", getClass().getSimpleName());
+        log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
         airportService = (AirportService) context.getAttribute(AIRPORT_SERVICE);
-        createAirportRequestConverter =
-                (CreateAirportRequestConverter) context.getAttribute(CREATE_AIRPORT_REQUEST_CONVERTER);
         updateAirportRequestConverter =
                 (UpdateAirportRequestConverter) context.getAttribute(UPDATE_AIRPORT_REQUEST_CONVERTER);
         airportConverter = (AirportConverter) context.getAttribute(AIRPORT_CONVERTER);
+        airportDtoConverter = (AirportDtoConverter) context.getAttribute(AIRPORT_DTO_CONVERTER);
         parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
         validationService = (ValidationService) context.getAttribute(VALIDATION_SERVICE);
         jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
 
-        log.info("Servlet {} initialization finished", getClass().getSimpleName());
+        log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @POST
     @Operation(tags = {"Airports"}, summary = "Создание аэропорта",
             description = "Создание аэропорта",
             requestBody = @RequestBody(description = "Данные аэропорта и адреса", required = true,
-                    content = @Content(schema = @Schema(implementation = CreateAirportRequest.class))),
+                    content = @Content(schema = @Schema(implementation = AirportDto.class))),
             responses = {@ApiResponse(responseCode = "200", description = "Успех"),
                     @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
                     @ApiResponse(responseCode = "401", description = "Не авторизован"),
@@ -72,30 +74,24 @@ public class AirportServlet extends HttpServlet {
     @Override
     public void doPost(@Parameter(hidden = true) HttpServletRequest req,
                        @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (!CurrentUserHolder.isAdmin()) {
-            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            return;
-        }
-
         var body = new String(req.getInputStream().readAllBytes());
-        var request = jsonHelper.fromJson(body, CreateAirportRequest.class);
+        var request = jsonHelper.fromJson(body, AirportDto.class);
 
         validationService.validate(request);
 
-        var airport = createAirportRequestConverter.convert(request);
+        var airport = airportDtoConverter.convert(request);
 
         var createdAirport = airportService.create(airport);
 
         var dto = airportConverter.convert(createdAirport);
 
-        resp.setStatus(HttpServletResponse.SC_CREATED);
         resp.setContentType("application/json");
-        resp.getOutputStream().write(jsonHelper.toJson(dto).getBytes());
+        jsonHelper.writeBytes(resp.getOutputStream(), dto);
     }
 
     @GET
-    @Operation(tags = {"Airports"}, summary = "Получение аэропорта или списка аэропортов",
-            description = "Если id не передан, возвращает все аэропорты",
+    @Operation(tags = {"Airports"}, summary = "Получение аэропорта",
+            description = "Возвращает аэропорт по переданному id",
             parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "Id аэропорта", example = "1",
                     schema = @Schema(type = "integer", format = "int64"))},
             responses = {@ApiResponse(responseCode = "200", description = "Успех"),
@@ -106,18 +102,14 @@ public class AirportServlet extends HttpServlet {
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        var code = parameterExtractor.extractAirportCode(req, false);
+        var code = parameterExtractor.extractParameter(req, "id", false, Function.identity());
 
-        String responseBodyJson;
-        if (code == null) {
-            responseBodyJson = findAll();
-        } else {
-            responseBodyJson = findByCode(code);
-        }
+        var airport = airportService.findById(code);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
+        var dto = airportConverter.convert(airport);
+
         resp.setContentType("application/json");
-        resp.getOutputStream().write(responseBodyJson.getBytes(StandardCharsets.UTF_8));
+        jsonHelper.writeBytes(resp.getOutputStream(), dto);
     }
 
     @PUT
@@ -133,13 +125,8 @@ public class AirportServlet extends HttpServlet {
     @Override
     public void doPut(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        if (!CurrentUserHolder.isAdmin()) {
-            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-
-            return;
-        }
-
         var body = new String(req.getInputStream().readAllBytes());
+
         var request = jsonHelper.fromJson(body, UpdateAirportRequest.class);
 
         validationService.validate(request);
@@ -150,24 +137,7 @@ public class AirportServlet extends HttpServlet {
 
         var dto = airportConverter.convert(updatedAirport);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
         resp.setContentType("application/json");
-        resp.getOutputStream().write(jsonHelper.toJson(dto).getBytes());
-    }
-
-    private String findAll() {
-        var airports = airportService.findAll();
-        var airportDtos = airportConverter.convertAll(airports);
-
-        return jsonHelper.toJson(airportDtos);
-    }
-
-    private String findByCode(String code) {
-
-        var airport = airportService.findById(code);
-
-        var dto = airportConverter.convert(airport);
-
-        return jsonHelper.toJson(dto);
+        jsonHelper.writeBytes(resp.getOutputStream(), dto);
     }
 }

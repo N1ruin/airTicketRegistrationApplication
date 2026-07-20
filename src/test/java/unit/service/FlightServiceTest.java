@@ -2,14 +2,12 @@ package unit.service;
 
 import domain.Airport;
 import domain.Flight;
-import exception.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import repository.FlightRepository;
 import util.TransactionHelper;
 import service.AirportService;
 import service.FlightService;
@@ -54,9 +52,9 @@ class FlightServiceTest {
         flight.setDepartureDate(departureDate);
         flight.setArrivalDate(arrivalDate);
         var airport = new Airport();
-        airport.setCode(flight.getDepartureAirportCode());
-        when(airportService.findById(flight.getDepartureAirportCode())).thenReturn(airport);
-        when(airportService.findById(flight.getArrivalAirportCode())).thenReturn(airport);
+        airport.setId(flight.getDepartureAirportId());
+        when(airportService.findById(flight.getDepartureAirportId())).thenReturn(airport);
+        when(airportService.findById(flight.getArrivalAirportId())).thenReturn(airport);
         when(flightRepository.create(flight)).thenAnswer(invocation -> {
             Flight savedFlight = invocation.getArgument(0);
             savedFlight.setId(1L);
@@ -67,12 +65,12 @@ class FlightServiceTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        assertEquals(100, result.getAllSeats());
+        assertEquals(100, result.getSeatsCount());
         assertEquals(90, result.getFreeSeats());
         assertEquals(departureDate, result.getDepartureDate());
         assertEquals(arrivalDate, result.getArrivalDate());
-        assertEquals("MSQ", result.getDepartureAirportCode());
-        assertEquals("DME", result.getArrivalAirportCode());
+        assertEquals("MSQ", result.getDepartureAirportId());
+        assertEquals("DME", result.getArrivalAirportId());
         verify(airportService, times(2)).findById(anyString());
         verify(flightRepository).create(flight);
     }
@@ -84,12 +82,12 @@ class FlightServiceTest {
         var arrivalDate = ZonedDateTime.now().plusDays(2);
         flight.setDepartureDate(departureDate);
         flight.setArrivalDate(arrivalDate);
-        when(airportService.findById(flight.getDepartureAirportCode()))
+        when(airportService.findById(flight.getDepartureAirportId()))
                 .thenThrow(EntityNotFoundException.class);
 
         assertThrows(EntityNotFoundException.class, () -> flightService.create(flight));
 
-        verify(airportService).findById(flight.getDepartureAirportCode());
+        verify(airportService).findById(flight.getDepartureAirportId());
     }
 
     @Test
@@ -109,12 +107,12 @@ class FlightServiceTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        assertEquals(100, result.getAllSeats());
+        assertEquals(100, result.getSeatsCount());
         assertEquals(90, result.getFreeSeats());
         assertEquals(departureDate, result.getDepartureDate());
         assertEquals(arrivalDate, result.getArrivalDate());
-        assertEquals("MSQ", result.getDepartureAirportCode());
-        assertEquals("DME", result.getArrivalAirportCode());
+        assertEquals("MSQ", result.getDepartureAirportId());
+        assertEquals("DME", result.getArrivalAirportId());
     }
 
     @Test
@@ -142,8 +140,8 @@ class FlightServiceTest {
         flightOne.setArrivalDate(arrivalDateOne);
         var flightTwo = getFlight();
         flightTwo.setId(2L);
-        flightTwo.setDepartureAirportCode("SVO");
-        flightTwo.setArrivalAirportCode("LED");
+        flightTwo.setDepartureAirportId("SVO");
+        flightTwo.setArrivalAirportId("LED");
         var departureDateTwo = ZonedDateTime.now().plusDays(3);
         var arrivalDateTwo = ZonedDateTime.now().plusDays(4);
         flightTwo.setDepartureDate(departureDateTwo);
@@ -156,10 +154,10 @@ class FlightServiceTest {
         assertEquals(2, result.size());
         assertEquals(1L, result.getFirst().getId());
         assertEquals(2L, result.getLast().getId());
-        assertEquals("MSQ", result.getFirst().getDepartureAirportCode());
-        assertEquals("DME", result.getFirst().getArrivalAirportCode());
-        assertEquals("SVO", result.getLast().getDepartureAirportCode());
-        assertEquals("LED", result.getLast().getArrivalAirportCode());
+        assertEquals("MSQ", result.getFirst().getDepartureAirportId());
+        assertEquals("DME", result.getFirst().getArrivalAirportId());
+        assertEquals("SVO", result.getLast().getDepartureAirportId());
+        assertEquals("LED", result.getLast().getArrivalAirportId());
         verify(flightRepository).findAll();
     }
 
@@ -181,14 +179,14 @@ class FlightServiceTest {
         var updatedFlight = getFlight();
         updatedFlight.setId(1L);
         updatedFlight.setFreeSeats(50);
-        updatedFlight.setAllSeats(200);
-        updatedFlight.setDepartureAirportCode("SVO");
-        updatedFlight.setArrivalAirportCode("LED");
+        updatedFlight.setSeatsCount(200);
+        updatedFlight.setDepartureAirportId("SVO");
+        updatedFlight.setArrivalAirportId("LED");
 
         var airport1 = new Airport();
-        airport1.setCode("SVO");
+        airport1.setId("SVO");
         var airport2 = new Airport();
-        airport2.setCode("LED");
+        airport2.setId("LED");
 
         when(flightRepository.findById(1L)).thenReturn(Optional.of(existingFlight));
         when(airportService.findById("SVO")).thenReturn(airport1);
@@ -199,10 +197,10 @@ class FlightServiceTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        assertEquals(200, result.getAllSeats());
+        assertEquals(200, result.getSeatsCount());
         assertEquals(50, result.getFreeSeats());
-        assertEquals("SVO", result.getDepartureAirportCode());
-        assertEquals("LED", result.getArrivalAirportCode());
+        assertEquals("SVO", result.getDepartureAirportId());
+        assertEquals("LED", result.getArrivalAirportId());
         verify(airportService, times(2)).findById(anyString());
         verify(flightRepository).update(any(Flight.class));
     }
@@ -240,12 +238,12 @@ class FlightServiceTest {
 
     private Flight getFlight() {
         var flight = new Flight();
-        flight.setAllSeats(100);
+        flight.setSeatsCount(100);
         flight.setFreeSeats(90);
         var departureAirportCode = "MSQ";
-        flight.setDepartureAirportCode(departureAirportCode);
+        flight.setDepartureAirportId(departureAirportCode);
         var arrivalAirportCode = "DME";
-        flight.setArrivalAirportCode(arrivalAirportCode);
+        flight.setArrivalAirportId(arrivalAirportCode);
         return flight;
     }
 }

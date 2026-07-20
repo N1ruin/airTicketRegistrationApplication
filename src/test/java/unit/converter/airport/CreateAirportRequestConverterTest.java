@@ -1,10 +1,6 @@
 package unit.converter.airport;
 
-import converter.address.AddressDtoConverter;
-import converter.airport.CreateAirportRequestConverter;
-import domain.Address;
 import dto.address.AddressDto;
-import dto.airport.CreateAirportRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,7 +28,7 @@ class CreateAirportRequestConverterTest {
         var result = converter.convert(request);
 
         assertNotNull(result);
-        assertEquals("SVO", result.getCode());
+        assertEquals("SVO", result.getId());
         assertEquals("Шереметьево", result.getName());
         assertEquals(addressMock, result.getAddress());
         verify(addressDtoConverter).convert(addressDtoMock);

@@ -10,10 +10,10 @@ public class UpdateFlightRequestConverter implements Converter<UpdateFlightReque
         var flight = new Flight();
 
         flight.setId(request.id());
-        flight.setAllSeats(request.allSeats());
+        flight.setSeatsCount(request.seatsCount());
         flight.setFreeSeats(request.freeSeats());
-        flight.setDepartureAirportCode(request.departureAirportCode());
-        flight.setArrivalAirportCode(request.arrivalAirportCode());
+        flight.setDepartureAirportId(request.departureAirportId());
+        flight.setArrivalAirportId(request.arrivalAirportId());
         flight.setDepartureDate(request.departureDate());
         flight.setArrivalDate(request.arrivalDate());
 

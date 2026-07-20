@@ -12,24 +12,24 @@ import java.time.ZonedDateTime;
 public record CreateFlightRequest(
         @Schema(description = "Общее количество мест на рейсе", example = "180",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "All seats count is required")
-        @Positive(message = "All seats must be positive")
-        Integer allSeats,
+        @NotNull(message = "Seats count count is required")
+        @Positive(message = "Seats count must be positive")
+        int seatsCount,
 
         @Schema(description = "Количество свободных мест", example = "180")
         @NotNull(message = "Free seats count is required")
         @Positive(message = "Free seats must be positive")
-        Integer freeSeats,
+        int freeSeats,
 
-        @Schema(description = "Код аэропорта вылета")
-        @NotNull(message = "Departure airport code is required")
+        @Schema(description = "ID аэропорта вылета")
+        @NotEmpty(message = "Departure airport id is required")
         @Pattern(regexp = "^[A-Z]{3}$", message = "Code must be 3 uppercase letters")
-        String departureAirportCode,
+        String departureAirportId,
 
-        @Schema(description = "Код аэропорта прибытия")
-        @NotNull(message = "Arrival airport code is required")
+        @Schema(description = "ID аэропорта прибытия")
+        @NotEmpty(message = "Arrival airport id is required")
         @Pattern(regexp = "^[A-Z]{3}$", message = "Code must be 3 uppercase letters")
-        String arrivalAirportCode,
+        String arrivalAirportId,
 
         @Schema(description = "Дата и время вылета", example = "2024-11-20T13:30:00+03:00",
                 type = "string", pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")

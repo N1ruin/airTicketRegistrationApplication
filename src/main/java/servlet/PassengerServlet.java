@@ -1,7 +1,7 @@
 package servlet;
 
+import dto.passenger.CreatePassengerRequest;
 import dto.passenger.UpdatePassengerRequest;
-import dto.passport.PassportDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,7 +21,6 @@ import service.PassengerService;
 import util.CurrentUserHolder;
 import util.JsonHelper;
 import util.RequestParameterExtractor;
-import validation.service.RequestParameterValidationService;
 import validation.service.ValidationService;
 
 import java.io.IOException;
@@ -30,22 +28,20 @@ import java.nio.charset.StandardCharsets;
 
 import static constant.ServletContextAttributeKey.*;
 
-@WebServlet("/api/v1/passenger")
 @Path("/ticket-app/api/v1/passenger")
 public class PassengerServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(PassengerServlet.class);
+
     private JsonHelper jsonHelper;
     private PassengerService passengerService;
     private RequestParameterExtractor parameterExtractor;
     private ValidationService validationService;
-    private PassportDtoToPassengerConverter passportDtoToPassengerConverter;
     private PassengerDtoConverter passengerDtoConverter;
     private UpdatePassengerRequestConverter updatePassengerRequestConverter;
-    private RequestParameterValidationService requestParameterValidationService;
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization started", getClass().getSimpleName());
+        log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
@@ -53,24 +49,18 @@ public class PassengerServlet extends HttpServlet {
         passengerService = (PassengerService) context.getAttribute(PASSENGER_SERVICE);
         parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
         validationService = (ValidationService) context.getAttribute(PASSENGER_VALIDATION_SERVICE);
-        passportDtoToPassengerConverter =
-                (PassportDtoToPassengerConverter) context.getAttribute(CREATE_PASSENGER_REQUEST_CONVERTER);
-
         passengerDtoConverter = (PassengerDtoConverter) context.getAttribute(PASSENGER_DTO_CONVERTER);
         updatePassengerRequestConverter =
                 (UpdatePassengerRequestConverter) context.getAttribute(UPDATE_PASSENGER_REQUEST_CONVERTER);
 
-        requestParameterValidationService =
-                (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
-
-        log.info("Servlet {} initialization finished", getClass().getSimpleName());
+        log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @POST
     @Operation(tags = {"Passengers"}, summary = "Создание пассажира",
             description = "Создание пассажира",
             requestBody = @RequestBody(description = "Данные пассажира", required = true,
-                    content = @Content(schema = @Schema(implementation = PassportDto.class))),
+                    content = @Content(schema = @Schema(implementation = CreatePassengerRequest.class))),
             responses = {@ApiResponse(responseCode = "200", description = "Успех"),
                     @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
                     @ApiResponse(responseCode = "401", description = "Не авторизован"),
@@ -86,7 +76,7 @@ public class PassengerServlet extends HttpServlet {
         }
 
         var body = new String(req.getInputStream().readAllBytes());
-        var passportDto = jsonHelper.fromJson(body, PassportDto.class);
+        var passportDto = jsonHelper.fromJson(body, CreatePassengerRequest.class);
 
         validationService.validate(passportDto);
 
@@ -96,9 +86,8 @@ public class PassengerServlet extends HttpServlet {
 
         var createPassengerResponse = passengerDtoConverter.convert(savedPassenger);
 
-        resp.setStatus(HttpServletResponse.SC_CREATED);
         resp.setContentType("application/json");
-        resp.getOutputStream().write(jsonHelper.toJson(createPassengerResponse).getBytes(StandardCharsets.UTF_8));
+        jsonHelper.writeBytes(resp.getOutputStream(), createPassengerResponse);
     }
 
     @GET
@@ -114,7 +103,7 @@ public class PassengerServlet extends HttpServlet {
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        var passengerId = parameterExtractor.extractId(req, false);
+        var passengerId = parameterExtractor.extractParameter(req, "passengerId", false, Long::parseLong);
         var currentUserId = CurrentUserHolder.getCurrentUserId();
         boolean isAdmin = CurrentUserHolder.isAdmin();
 
@@ -123,15 +112,14 @@ public class PassengerServlet extends HttpServlet {
             var passenger = isAdmin
                     ? passengerService.findById(passengerId)
                     : passengerService.findByIdAndUserId(passengerId, currentUserId);
-            responseBodyJson = jsonHelper.toJson(passengerDtoConverter.convert(passenger));
+            responseBodyJson = jsonHelper.writeBytes(passengerDtoConverter.convert(passenger));
         } else {
             var passengers = isAdmin
                     ? passengerService.findAll()
                     : passengerService.findAllByUserId(currentUserId);
-            responseBodyJson = jsonHelper.toJson(passengerDtoConverter.convertAll(passengers));
+            responseBodyJson = jsonHelper.writeBytes(passengerDtoConverter.convertAll(passengers));
         }
 
-        resp.setStatus(HttpServletResponse.SC_OK);
         resp.setContentType("application/json");
         resp.getOutputStream().write(responseBodyJson.getBytes(StandardCharsets.UTF_8));
     }
@@ -166,9 +154,8 @@ public class PassengerServlet extends HttpServlet {
 
         var dto = passengerDtoConverter.convert(updatedPassenger);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
         resp.setContentType("application/json");
-        resp.getOutputStream().write(jsonHelper.toJson(dto).getBytes(StandardCharsets.UTF_8));
+        jsonHelper.writeBytes(resp.getOutputStream(), dto);
     }
 
     @DELETE
@@ -190,9 +177,7 @@ public class PassengerServlet extends HttpServlet {
             return;
         }
 
-        var passengerId = parameterExtractor.extractId(req, true);
-
-        requestParameterValidationService.validateId(passengerId);
+        var passengerId = parameterExtractor.extractParameter(req, "id", true, Long::parseLong);
 
         passengerService.delete(passengerId);
 

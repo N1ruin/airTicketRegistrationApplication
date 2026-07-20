@@ -1,44 +1,28 @@
 package util;
 
-import exception.ValidationException;
+import exception.ApplicationException;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.function.Function;
+
+import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+
 public class RequestParameterExtractor {
-    public Long extractId(HttpServletRequest req, boolean required) {
-        return extractLong(req, "id", required);
-    }
-
-    public String extractAirportCode(HttpServletRequest req, boolean required) {
-        return extractString(req, "airport-code", required);
-    }
-
-    private Long extractLong(HttpServletRequest req, String paramName, boolean required) {
-        String param = req.getParameter(paramName);
+    public <T> T extractParameter(HttpServletRequest req, String paramName,
+                                  boolean required, Function<String, T> converter) {
+        var param = req.getParameter(paramName);
 
         if (param == null || param.isBlank()) {
             if (required) {
-                throw new ValidationException("Parameter " + paramName + " is required");
+                throw new ApplicationException("Parameter " + paramName + " is required", SC_BAD_REQUEST);
             }
             return null;
         }
 
         try {
-            return Long.parseLong(param);
-        } catch (NumberFormatException e) {
-            throw new ValidationException("Invalid " + paramName + " format: " + param);
+            return converter.apply(param);
+        } catch (Exception e) {
+            throw new ApplicationException("Invalid " + paramName + " format: " + param, SC_BAD_REQUEST);
         }
-    }
-
-    private String extractString(HttpServletRequest req, String paramName, boolean required) {
-        String param = req.getParameter(paramName);
-
-        if (param == null || param.isBlank()) {
-            if (required) {
-                throw new ValidationException("Parameter " + paramName + " is required");
-            }
-            return null;
-        }
-
-        return param;
     }
 }

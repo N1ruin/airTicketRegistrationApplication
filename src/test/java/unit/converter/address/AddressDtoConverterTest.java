@@ -1,6 +1,5 @@
 package unit.converter.address;
 
-import converter.address.AddressDtoConverter;
 import dto.address.AddressDto;
 import org.junit.jupiter.api.Test;
 

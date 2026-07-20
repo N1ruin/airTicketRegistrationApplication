@@ -7,13 +7,13 @@ import jakarta.validation.constraints.*;
 public record UserSignUpRequest(
         @Schema(description = "Email", example = "example@mail.ru",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Email is required")
+        @NotEmpty(message = "Email is required")
         @Email(message = "Invalid email format")
         String email,
 
         @Schema(description = "Пароль", example = "Password321",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank(message = "Password is required")
+        @NotEmpty(message = "Password is required")
         @Size(min = 5, message = "Password must be at least 5 characters")
         String password) {
 }

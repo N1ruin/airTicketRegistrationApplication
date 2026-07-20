@@ -1,11 +1,13 @@
 package service;
 
 import domain.Flight;
-import exception.EntityNotFoundException;
-import repository.FlightRepository;
+import exception.ApplicationException;
+import repository.impl.FlightRepository;
 import util.TransactionHelper;
 
 import java.util.List;
+
+import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 
 public class FlightService {
     private final FlightRepository flightRepository;
@@ -21,8 +23,8 @@ public class FlightService {
 
     public Flight create(Flight flight) {
         return transactionHelper.executeInTransaction(() -> {
-            airportService.findById(flight.getDepartureAirportCode());
-            airportService.findById(flight.getArrivalAirportCode());
+            airportService.findById(flight.getDepartureAirportId());
+            airportService.findById(flight.getArrivalAirportId());
 
             return flightRepository.create(flight);
         });
@@ -30,7 +32,7 @@ public class FlightService {
 
     public Flight findById(Long id) {
         return flightRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Flight not found. ID: %d".formatted(id)));
+                .orElseThrow(() -> new ApplicationException("Flight not found. ID: %d".formatted(id), SC_NOT_FOUND));
     }
 
     public List<Flight> findAll() {
@@ -41,18 +43,18 @@ public class FlightService {
         return transactionHelper.executeInTransaction(() -> {
             var existedFlight = findById(flight.getId());
 
-            if (isAirportCodeChange(existedFlight.getDepartureAirportCode(), flight.getDepartureAirportCode())) {
-                airportService.findById(flight.getDepartureAirportCode());
-                existedFlight.setDepartureAirportCode(flight.getDepartureAirportCode());
+            if (isAirportCodeChange(existedFlight.getDepartureAirportId(), flight.getDepartureAirportId())) {
+                airportService.findById(flight.getDepartureAirportId());
+                existedFlight.setDepartureAirportId(flight.getDepartureAirportId());
             }
 
-            if (isAirportCodeChange(existedFlight.getArrivalAirportCode(), flight.getArrivalAirportCode())) {
-                airportService.findById(flight.getArrivalAirportCode());
-                existedFlight.setArrivalAirportCode(flight.getArrivalAirportCode());
+            if (isAirportCodeChange(existedFlight.getArrivalAirportId(), flight.getArrivalAirportId())) {
+                airportService.findById(flight.getArrivalAirportId());
+                existedFlight.setArrivalAirportId(flight.getArrivalAirportId());
             }
 
             existedFlight.setFreeSeats(flight.getFreeSeats());
-            existedFlight.setAllSeats(flight.getAllSeats());
+            existedFlight.setSeatsCount(flight.getSeatsCount());
             existedFlight.setDepartureDate(flight.getDepartureDate());
             existedFlight.setArrivalDate(flight.getArrivalDate());
 

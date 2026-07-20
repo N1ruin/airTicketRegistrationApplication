@@ -1,7 +1,6 @@
 package unit.converter.passsport;
 
 import converter.passsport.PassportDtoConverter;
-import domain.Passport;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

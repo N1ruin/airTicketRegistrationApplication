@@ -1,34 +1,35 @@
 package service;
 
 import domain.Airport;
-import exception.EntityAlreadyExistException;
-import exception.EntityNotFoundException;
-import repository.AirportRepository;
+import exception.ApplicationException;
+import repository.impl.AirportRepository;
 import util.TransactionHelper;
 
 import java.util.List;
 
+import static jakarta.servlet.http.HttpServletResponse.SC_CONFLICT;
+import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+
 public class AirportService {
-    private final AddressService addressService;
     private final AirportRepository airportRepository;
     private final TransactionHelper transactionHelper;
 
-    public AirportService(AddressService addressService, AirportRepository airportRepository,
+    public AirportService(AirportRepository airportRepository,
                           TransactionHelper transactionHelper) {
-        this.addressService = addressService;
         this.airportRepository = airportRepository;
         this.transactionHelper = transactionHelper;
     }
 
     public Airport create(Airport airport) {
         return transactionHelper.executeInTransaction(() -> {
-            var existing = airportRepository.findById(airport.getCode());
+            var existing = airportRepository.findById(airport.getId());
+
             if (existing.isPresent()) {
-                throw new EntityAlreadyExistException("Airport already exist. Code: %s"
-                        .formatted(airport.getCode()));
+                throw new ApplicationException("Airport already exist. Code: %s"
+                        .formatted(airport.getId()), SC_CONFLICT);
             }
 
-            addressService.create(airport.getAddress());
+            checkAvailabilityAtAddress(airport);
 
             return airportRepository.create(airport);
         });
@@ -40,17 +41,18 @@ public class AirportService {
 
     public Airport findById(String code) {
         return airportRepository.findById(code)
-                .orElseThrow(() -> new EntityNotFoundException("Airport not found. Code: %s".formatted(code)));
+                .orElseThrow(() -> new ApplicationException("Airport not found. Code: %s".formatted(code), SC_NOT_FOUND));
     }
 
     public Airport update(Airport airport) {
         return transactionHelper.executeInTransaction(() -> {
-            var existingAirport = getAirportByCode(airport.getCode());
+            var existingAirport = getAirportByCode(airport.getId());
 
-            var updatedAddress = addressService.update(airport.getAddress());
             existingAirport.setName(airport.getName());
-            existingAirport.setWorked(airport.isWorked());
-            existingAirport.setAddress(updatedAddress);
+            existingAirport.setCountry(airport.getCountry());
+            existingAirport.setStreet(airport.getStreet());
+            existingAirport.setHouseNumber(airport.getHouseNumber());
+            existingAirport.setActive(airport.isActive());
 
             return airportRepository.update(existingAirport);
         });
@@ -58,6 +60,19 @@ public class AirportService {
 
     private Airport getAirportByCode(String code) {
         return airportRepository.findById(code)
-                .orElseThrow(() -> new EntityNotFoundException("Airport not found. Code: %s".formatted(code)));
+                .orElseThrow(() -> new ApplicationException("Airport not found. Code: %s".formatted(code), SC_NOT_FOUND));
+    }
+
+    private void checkAvailabilityAtAddress(Airport airport) {
+        if (airportRepository.findByCountryAndCityAndStreetAndHouseNumber(airport).isPresent()) {
+            throw new ApplicationException(("Airport already exist at the address. Country: %s, City: %s," +
+                    " Street: %s, House number: %s")
+                    .formatted(
+                            airport.getCountry(),
+                            airport.getCity(),
+                            airport.getStreet(),
+                            airport.getHouseNumber()),
+                    SC_CONFLICT);
+        }
     }
 }

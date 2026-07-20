@@ -16,17 +16,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.FlightService;
 import util.JsonHelper;
-import util.RequestParameterExtractor;
 
 import java.io.IOException;
 
 import static constant.ServletContextAttributeKey.*;
+import static constant.ServletContextAttributeKey.FLIGHT_CONVERTER;
 
-@Path("/ticket-app/api/v1/flight")
-public class FlightServlet extends HttpServlet {
-    private static final Logger log = LogManager.getLogger(FlightServlet.class);
+@Path("/ticket-app/api/v1/flights")
+public class FlightListServlet extends HttpServlet {
+    private static final Logger log = LogManager.getLogger(FlightListServlet.class);
     private FlightService flightService;
-    private RequestParameterExtractor parameterExtractor;
     private FlightConverter flightConverter;
     private JsonHelper jsonHelper;
 
@@ -38,15 +37,14 @@ public class FlightServlet extends HttpServlet {
 
         jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
         flightService = (FlightService) context.getAttribute(FLIGHT_SERVICE);
-        parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
         flightConverter = (FlightConverter) context.getAttribute(FLIGHT_CONVERTER);
 
         log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @GET
-    @Operation(tags = {"Flights"}, summary = "Получение данных рейса",
-            description = "Возвращает данные рейса",
+    @Operation(tags = {"Flights"}, summary = "Получение данных всех рейсов",
+            description = "Возвращает данные всех рейсы",
             parameters = {@Parameter(name = "id", in = ParameterIn.QUERY, description = "Id рейса", example = "1",
                     schema = @Schema(type = "integer", format = "int64"))},
             responses = {@ApiResponse(responseCode = "200", description = "Успех"),
@@ -57,13 +55,11 @@ public class FlightServlet extends HttpServlet {
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        var id = parameterExtractor.extractParameter(req, "id", false, Long::parseLong);
+        var flights = flightService.findAll();
 
-        var flight = flightService.findById(id);
-
-        var flightDto = flightConverter.convert(flight);
+        var flightDtos = flightConverter.convertAll(flights);
 
         resp.setContentType("application/json");
-        jsonHelper.writeBytes(resp.getOutputStream(), flightDto);
+        jsonHelper.writeBytes(resp.getOutputStream(), flightDtos);
     }
 }

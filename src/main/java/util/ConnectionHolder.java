@@ -7,12 +7,13 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-public class ConnectionHelper {
+public class ConnectionHolder {
     private static final ThreadLocal<Connection> connectionHolder = new ThreadLocal<>();
-    private static final Logger log = LogManager.getLogger(ConnectionHelper.class);
+    private static final Logger log = LogManager.getLogger(ConnectionHolder.class);
+
     private final DataSource dataSource;
 
-    public ConnectionHelper(DataSource dataSource) {
+    public ConnectionHolder(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 

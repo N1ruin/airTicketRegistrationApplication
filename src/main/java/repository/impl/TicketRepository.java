@@ -1,10 +1,10 @@
 package repository.impl;
 
 import domain.Ticket;
-import exception.RepositoryException;
+import exception.ApplicationException;
 import mapper.TicketResultSetMapper;
-import repository.TicketRepository;
-import util.ConnectionHelper;
+import repository.Repository;
+import util.ConnectionHolder;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -12,13 +12,15 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public class TicketRepositoryImpl implements TicketRepository {
+import static jakarta.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+
+public class TicketRepository implements Repository<Ticket, Long> {
     private static final String SELECT_QUERY = """
             SELECT
-            ticket.id AS ticket_id,
-            ticket.ticket_number AS ticket_number,
-            ticket.ticket_status AS ticket_status,
-            ticket.ticket_rank AS ticket_rank,
+            ticket.id AS id,
+            ticket.ticket_number AS number,
+            ticket.ticket_status AS status,
+            ticket.ticket_rank AS rank,
             ticket.seat_number AS seat_number,
             ticket.purchase_date AS purchase_date,
             ticket.updated_date AS updated_date,
@@ -28,11 +30,12 @@ public class TicketRepositoryImpl implements TicketRepository {
             ticket.passenger_id AS passenger_id
             FROM tickets_application.ticket AS ticket
             """;
-    private final ConnectionHelper connectionHelper;
+
+    private final ConnectionHolder connectionHolder;
     private final TicketResultSetMapper resultSetMapper;
 
-    public TicketRepositoryImpl(ConnectionHelper connectionHelper, TicketResultSetMapper ticketResultSetMapper) {
-        this.connectionHelper = connectionHelper;
+    public TicketRepository(ConnectionHolder connectionHolder, TicketResultSetMapper ticketResultSetMapper) {
+        this.connectionHolder = connectionHolder;
         this.resultSetMapper = ticketResultSetMapper;
     }
 
@@ -55,7 +58,7 @@ public class TicketRepositoryImpl implements TicketRepository {
 
         ticket.setPurchaseDate(ZonedDateTime.now());
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, ticket.getTicketStatus().name());
             preparedStatement.setString(2, ticket.getTicketRank().name());
@@ -73,7 +76,7 @@ public class TicketRepositoryImpl implements TicketRepository {
 
             return ticket;
         } catch (SQLException e) {
-            throw new RepositoryException("Ticket save error", e);
+            throw new ApplicationException("Ticket save error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -81,7 +84,7 @@ public class TicketRepositoryImpl implements TicketRepository {
     public Optional<Ticket> findById(Long id) {
         var sql = SELECT_QUERY + " WHERE ticket.id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
 
@@ -89,19 +92,19 @@ public class TicketRepositoryImpl implements TicketRepository {
 
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("Ticket find by id error", e);
+            throw new ApplicationException("Ticket find by id error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
     @Override
     public List<Ticket> findAll() {
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var ps = connection.prepareStatement(SELECT_QUERY)) {
             var resultSet = ps.executeQuery();
 
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("Tickets find all error", e);
+            throw new ApplicationException("Tickets find all error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -117,7 +120,7 @@ public class TicketRepositoryImpl implements TicketRepository {
                 WHERE id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, ticket.getTicketStatus().name());
             preparedStatement.setTimestamp(2, Timestamp.from(ticket.getUpdatedDate().toInstant()));
@@ -130,7 +133,7 @@ public class TicketRepositoryImpl implements TicketRepository {
 
             return ticket;
         } catch (SQLException e) {
-            throw new RepositoryException("Ticket update error", e);
+            throw new ApplicationException("Ticket update error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -138,20 +141,19 @@ public class TicketRepositoryImpl implements TicketRepository {
     public void deleteById(Long id) {
         var sql = "DELETE FROM tickets_application.ticket WHERE id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new RepositoryException("Ticket delete error", e);
+            throw new ApplicationException("Ticket delete error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    @Override
     public Optional<Ticket> findByFlightIdAndPassengerId(Long flightId, Long passengerId) {
         var sql = SELECT_QUERY + " WHERE ticket.flight_id = ? AND ticket.passenger_id = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, flightId);
             preparedStatement.setLong(2, passengerId);
@@ -164,11 +166,10 @@ public class TicketRepositoryImpl implements TicketRepository {
         }
     }
 
-    @Override
     public Optional<Ticket> findByFlightIdAndSeatNumber(Long id, Integer seatNumber) {
         var sql = SELECT_QUERY + " WHERE ticket.flight_id = ? AND ticket.seat_number = ?";
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
             preparedStatement.setInt(2, seatNumber);
@@ -177,29 +178,27 @@ public class TicketRepositoryImpl implements TicketRepository {
 
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("Ticket find by flight id and seat number error", e);
+            throw new ApplicationException("Ticket find by flight id and seat number error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    @Override
     public List<Ticket> findAllByUserId(Long userId) {
         var sql = SELECT_QUERY + """
                 JOIN tickets_application.passenger ON ticket.passenger_id = passenger.id
                 WHERE passenger.user_id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, userId);
             var resultSet = preparedStatement.executeQuery();
 
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("Ticket find all by user id error: " + userId, e);
+            throw new ApplicationException("Ticket find all by user id error: " + userId, e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    @Override
     public List<Ticket> findAllActualByUserId(Long userId) {
         var sql = SELECT_QUERY + """
                 JOIN tickets_application.passenger ON ticket.passenger_id = passenger.id
@@ -210,25 +209,24 @@ public class TicketRepositoryImpl implements TicketRepository {
                 AND ticket.ticket_status != 'CANCELLED'
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, userId);
             var resultSet = preparedStatement.executeQuery();
 
             return resultSetMapper.mapList(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("Ticket find all actual error", e);
+            throw new ApplicationException("Ticket find all actual error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    @Override
     public Optional<Ticket> findByIdAndCurrentUserId(Long id, Long userId) {
         var sql = SELECT_QUERY + """
                 JOIN tickets_application.passenger ON ticket.passenger_id = passenger.id
                 WHERE ticket.id = ? AND passenger.user_id = ?
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, id);
             preparedStatement.setLong(2, userId);
@@ -237,7 +235,7 @@ public class TicketRepositoryImpl implements TicketRepository {
 
             return resultSetMapper.map(resultSet);
         } catch (SQLException e) {
-            throw new RepositoryException("Ticket find by id and user id error", e);
+            throw new ApplicationException("Ticket find by id and user id error", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 }

@@ -17,13 +17,13 @@ public record TicketDto(
         TicketStatus ticketStatus,
 
         @Schema(description = "Уникальный номер билета", example = "100020003000")
-        Long ticketNumber,
+        long ticketNumber,
 
         @Schema(description = "Класс обслуживания", example = "ECONOMY")
         TicketRank ticketRank,
 
         @Schema(description = "Номер места", example = "12")
-        Integer seatNumber,
+        int seatNumber,
 
         @Schema(description = "Id рейса")
         Long flightId,
@@ -37,8 +37,8 @@ public record TicketDto(
         ZonedDateTime purchaseDate,
 
         @Schema(description = "Допустимый вес багажа (кг)", example = "23.5")
-        Double baggageWeight,
+        double baggageWeight,
 
         @Schema(description = "Допустимый вес ручной клади (кг)", example = "8.0")
-        Double carryOnBaggageWeight) {
+        double carryOnBaggageWeight) {
 }

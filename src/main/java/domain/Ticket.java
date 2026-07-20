@@ -4,16 +4,16 @@ import java.time.ZonedDateTime;
 
 public class Ticket {
     private Long id;
-    private Long ticketNumber;
+    private long ticketNumber;
     private TicketStatus ticketStatus;
     private TicketRank ticketRank;
-    private Integer seatNumber;
-    private Long flightId;
-    private Long passengerId;
+    private int seatNumber;
+    private long flightId;
+    private long passengerId;
     private ZonedDateTime purchaseDate;
     private ZonedDateTime updatedDate;
-    private Double baggageWeight;
-    private Double carryOnBaggageWeight;
+    private double baggageWeight;
+    private double carryOnBaggageWeight;
 
     public Long getId() {
         return id;
@@ -23,11 +23,11 @@ public class Ticket {
         this.id = id;
     }
 
-    public Long getTicketNumber() {
+    public long getTicketNumber() {
         return ticketNumber;
     }
 
-    public void setTicketNumber(Long ticketNumber) {
+    public void setTicketNumber(long ticketNumber) {
         this.ticketNumber = ticketNumber;
     }
 
@@ -39,11 +39,11 @@ public class Ticket {
         this.ticketRank = ticketRank;
     }
 
-    public Integer getSeatNumber() {
+    public int getSeatNumber() {
         return seatNumber;
     }
 
-    public void setSeatNumber(Integer seatNumber) {
+    public void setSeatNumber(int seatNumber) {
         this.seatNumber = seatNumber;
     }
 
@@ -55,19 +55,19 @@ public class Ticket {
         this.purchaseDate = purchaseDate;
     }
 
-    public Double getBaggageWeight() {
+    public double getBaggageWeight() {
         return baggageWeight;
     }
 
-    public void setBaggageWeight(Double baggageWeight) {
+    public void setBaggageWeight(double baggageWeight) {
         this.baggageWeight = baggageWeight;
     }
 
-    public Double getCarryOnBaggageWeight() {
+    public double getCarryOnBaggageWeight() {
         return carryOnBaggageWeight;
     }
 
-    public void setCarryOnBaggageWeight(Double carryOnBaggageWeight) {
+    public void setCarryOnBaggageWeight(double carryOnBaggageWeight) {
         this.carryOnBaggageWeight = carryOnBaggageWeight;
     }
 

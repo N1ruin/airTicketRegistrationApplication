@@ -2,8 +2,7 @@ package servlet;
 
 import converter.user.UserDtoConverter;
 import dto.user.UserAuthenticationRequest;
-import dto.user.UserDto;
-import exception.UserAlreadyAuthenticatedException;
+import exception.ApplicationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,25 +23,26 @@ import util.JsonHelper;
 import java.io.IOException;
 
 import static constant.ServletContextAttributeKey.*;
+import static jakarta.servlet.http.HttpServletResponse.SC_CONFLICT;
 
-@WebServlet("/signin")
 @Path("/ticket-app/signin")
 public class SignInServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(SignInServlet.class);
+
     private UserService userService;
     private JsonHelper jsonHelper;
     private UserDtoConverter userDtoConverter;
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization started", getClass().getSimpleName());
+        log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
         userService = (UserService) context.getAttribute(USER_SERVICE);
         jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
         userDtoConverter = (UserDtoConverter) context.getAttribute(USER_DTO_CONVERTER);
 
-        log.info("Servlet {} initialization finished", getClass().getSimpleName());
+        log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @Operation(tags = {"Users"}, summary = "Вход в систему",
@@ -55,9 +54,9 @@ public class SignInServlet extends HttpServlet {
     @Override
     public void doPost(@Parameter(hidden = true) HttpServletRequest req,
                        @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        var user = (UserDto) req.getSession().getAttribute("user");
-        if (user != null) {
-            throw new UserAlreadyAuthenticatedException();
+        var session = req.getSession(false);
+        if (session != null) {
+            throw new ApplicationException("User already authenticated", SC_CONFLICT);
         }
 
         var body = new String(req.getInputStream().readAllBytes());
@@ -67,9 +66,7 @@ public class SignInServlet extends HttpServlet {
 
         var userDto = userDtoConverter.convert(loggedUser);
 
-        var session = req.getSession();
-        session.setAttribute("user", userDto);
-
-        resp.setStatus(HttpServletResponse.SC_OK);
+        var newSession = req.getSession();
+        newSession.setAttribute("user", userDto);
     }
 }

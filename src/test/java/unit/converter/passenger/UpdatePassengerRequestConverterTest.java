@@ -2,7 +2,6 @@ package unit.converter.passenger;
 
 import converter.passenger.UpdatePassengerRequestConverter;
 import converter.passsport.PassportConverter;
-import domain.Passport;
 import dto.passenger.UpdatePassengerRequest;
 import dto.passport.PassportDto;
 import org.junit.jupiter.api.Test;

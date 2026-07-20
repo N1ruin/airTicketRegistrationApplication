@@ -1,18 +1,13 @@
 package unit.service;
 
-import domain.Address;
 import domain.Airport;
-import exception.EntityAlreadyExistException;
-import exception.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import repository.AirportRepository;
 import util.TransactionHelper;
-import service.AddressService;
 import service.AirportService;
 
 import java.util.ArrayList;
@@ -51,7 +46,7 @@ class AirportServiceTest {
     @Test
     void createSuccess() {
         var airport = getAirport();
-        when(airportRepository.findById(airport.getCode())).thenReturn(Optional.empty());
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.empty());
         when(addressService.create(airport.getAddress())).thenReturn(airport.getAddress());
         when(airportRepository.create(any(Airport.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -59,7 +54,7 @@ class AirportServiceTest {
         var result = airportService.create(airport);
 
         assertNotNull(result);
-        assertEquals(airport.getCode(), result.getCode());
+        assertEquals(airport.getId(), result.getId());
         assertEquals(airport.getName(), result.getName());
         verify(addressService).create(airport.getAddress());
         verify(airportRepository).create(airport);
@@ -69,10 +64,10 @@ class AirportServiceTest {
     void createThrowsExceptionWhenAirportAlreadyExists() {
         var airport = getAirport();
         var existingAirport = new Airport();
-        existingAirport.setCode(airport.getCode());
-        existingAirport.setWorked(true);
+        existingAirport.setId(airport.getId());
+        existingAirport.setActive(true);
 
-        when(airportRepository.findById(airport.getCode())).thenReturn(Optional.of(existingAirport));
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(existingAirport));
 
         assertThrows(EntityAlreadyExistException.class, () -> airportService.create(airport));
 
@@ -83,12 +78,12 @@ class AirportServiceTest {
     @Test
     void findByIdSuccess() {
         var airport = getAirport();
-        when(airportRepository.findById(airport.getCode())).thenReturn(Optional.of(airport));
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(airport));
 
-        var result = airportService.findById(airport.getCode());
+        var result = airportService.findById(airport.getId());
 
         assertEquals(airport, result);
-        verify(airportRepository).findById(airport.getCode());
+        verify(airportRepository).findById(airport.getId());
     }
 
     @Test
@@ -104,7 +99,7 @@ class AirportServiceTest {
     void findAllReturnAirportList() {
         var airport1 = getAirport();
         var airport2 = getAirport();
-        airport2.setCode("SVO");
+        airport2.setId("SVO");
         var airports = List.of(airport1, airport2);
 
         when(airportRepository.findAll()).thenReturn(airports);
@@ -130,19 +125,19 @@ class AirportServiceTest {
         var airport = getAirport();
         var address = airport.getAddress();
 
-        when(airportRepository.findById(airport.getCode())).thenReturn(Optional.of(airport));
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.of(airport));
         when(addressService.update(any(Address.class))).thenReturn(address);
         when(airportRepository.update(any(Airport.class))).thenAnswer(i -> i.getArgument(0));
 
         airport.setName("Updated Name");
-        airport.setWorked(false);
+        airport.setActive(false);
 
         var result = airportService.update(airport);
 
         assertEquals("Updated Name", result.getName());
-        assertEquals("MSQ", result.getCode());
-        assertFalse(result.isWorked());
-        verify(airportRepository).findById(airport.getCode());
+        assertEquals("MSQ", result.getId());
+        assertFalse(result.isActive());
+        verify(airportRepository).findById(airport.getId());
         verify(addressService).update(address);
         verify(airportRepository).update(airport);
     }
@@ -150,21 +145,21 @@ class AirportServiceTest {
     @Test
     void updateThrowsEntityNotFoundExceptionWhenAirportNotFound() {
         var airport = getAirport();
-        when(airportRepository.findById(airport.getCode())).thenReturn(Optional.empty());
+        when(airportRepository.findById(airport.getId())).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> airportService.update(airport));
 
-        verify(airportRepository).findById(airport.getCode());
+        verify(airportRepository).findById(airport.getId());
         verify(addressService, never()).update(any());
         verify(airportRepository, never()).update(any());
     }
 
     private Airport getAirport() {
         var airport = new Airport();
-        airport.setCode("MSQ");
+        airport.setId("MSQ");
         airport.setName("Minsk airport");
         airport.setAddress(getAddress());
-        airport.setWorked(true);
+        airport.setActive(true);
 
         return airport;
     }

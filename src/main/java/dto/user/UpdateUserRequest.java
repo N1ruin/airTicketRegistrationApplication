@@ -7,7 +7,7 @@ import jakarta.validation.constraints.*;
 public record UpdateUserRequest(
         @Schema(description = "Новый пароль", example = "NewpaSs123!",
                 nullable = true)
-        @NotBlank(message = "New password is required")
+        @NotEmpty(message = "New password is required")
         @Size(min = 5, message = "Password must be at least 5 characters")
         String newPassword) {
 }

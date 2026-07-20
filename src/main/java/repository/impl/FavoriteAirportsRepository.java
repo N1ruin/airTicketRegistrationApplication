@@ -1,15 +1,13 @@
 package repository.impl;
 
-import domain.Airport;
-import exception.RepositoryException;
-import mapper.AirportResultSetMapper;
-import repository.FavoriteAirportsRepository;
-import util.ConnectionHelper;
+import exception.ApplicationException;
+import util.ConnectionHolder;
 
 import java.sql.SQLException;
-import java.util.List;
 
-public class FavoriteAirportsRepositoryImpl implements FavoriteAirportsRepository {
+import static jakarta.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+
+public class FavoriteAirportsRepository {
     private static final String SELECT_QUERY = """
             SELECT airport.code AS airport_code,
                    airport.name AS airport_name,
@@ -21,20 +19,15 @@ public class FavoriteAirportsRepositoryImpl implements FavoriteAirportsRepositor
                    address.house_number AS address_house_number
             FROM tickets_application.passenger_favorite_airports AS pfa
             JOIN tickets_application.airport AS airport ON pfa.airport_id = airport.id
-            JOIN tickets_application.address AS address ON airport.address_id = address.id
             WHERE pfa.passenger_id = ?
             """;
 
-    private final ConnectionHelper connectionHelper;
-    private final AirportResultSetMapper airportResultSetMapper;
+    private final ConnectionHolder connectionHolder;
 
-    public FavoriteAirportsRepositoryImpl(ConnectionHelper connectionHelper,
-                                         AirportResultSetMapper airportResultSetMapper) {
-        this.connectionHelper = connectionHelper;
-        this.airportResultSetMapper = airportResultSetMapper;
+    public FavoriteAirportsRepository(ConnectionHolder connectionHolder) {
+        this.connectionHolder = connectionHolder;
     }
 
-    @Override
     public void addFavorite(Long passengerId, String airportCode) {
         var sql = """
                 INSERT INTO tickets_application.passenger_favorite_airports (passenger_id, airport_id)
@@ -42,17 +35,16 @@ public class FavoriteAirportsRepositoryImpl implements FavoriteAirportsRepositor
                 ON CONFLICT (passenger_id, airport_id) DO NOTHING
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, passengerId);
             preparedStatement.setString(2, airportCode);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new RepositoryException("Failed to add favorite airport", e);
+            throw new ApplicationException("Failed to add favorite airport", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    @Override
     public void removeFavorite(Long passengerId, String airportCode) {
         var sql = """
                 DELETE FROM tickets_application.passenger_favorite_airports
@@ -60,13 +52,13 @@ public class FavoriteAirportsRepositoryImpl implements FavoriteAirportsRepositor
                 AND airport_id = (SELECT id FROM tickets_application.airport WHERE code = ?)
                 """;
 
-        var connection = connectionHelper.getConnection();
+        var connection = connectionHolder.getConnection();
         try (var preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setLong(1, passengerId);
             preparedStatement.setString(2, airportCode);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new RepositoryException("Failed to remove favorite airport", e);
+            throw new ApplicationException("Failed to remove favorite airport", e, SC_INTERNAL_SERVER_ERROR);
         }
     }
 }

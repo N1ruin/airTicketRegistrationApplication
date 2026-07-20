@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,7 +24,6 @@ import service.UserService;
 import util.CurrentUserHolder;
 import util.JsonHelper;
 import util.RequestParameterExtractor;
-import validation.service.RequestParameterValidationService;
 import validation.service.ValidationService;
 
 import java.io.IOException;
@@ -33,32 +31,29 @@ import java.nio.charset.StandardCharsets;
 
 import static constant.ServletContextAttributeKey.*;
 
-@WebServlet("/api/v1/user")
 @Path("/ticket-app/api/v1/user")
 public class UserServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(UserServlet.class);
+
     private JsonHelper jsonHelper;
     private UserService userService;
     private RequestParameterExtractor parameterExtractor;
-    private RequestParameterValidationService requestParameterValidationService;
     private UserDtoConverter userDtoConverter;
     private ValidationService validationService;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        log.info("Servlet {} initialization started", getClass().getSimpleName());
+        log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
         jsonHelper = (JsonHelper) context.getAttribute(JSON_HELPER);
         userService = (UserService) context.getAttribute(USER_SERVICE);
         parameterExtractor = (RequestParameterExtractor) context.getAttribute(REQUEST_PARAMETER_EXTRACTOR);
-        requestParameterValidationService =
-                (RequestParameterValidationService) context.getAttribute(REQUEST_PARAMETER_VALIDATION_SERVICE);
         userDtoConverter = (UserDtoConverter) context.getAttribute(USER_DTO_CONVERTER);
         validationService = (ValidationService) context.getAttribute(VALIDATION_SERVICE);
 
-        log.info("Servlet {} initialization finished", getClass().getSimpleName());
+        log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @GET
@@ -87,7 +82,7 @@ public class UserServlet extends HttpServlet {
             return;
         }
 
-        var id = parameterExtractor.extractId(req, false);
+        var id = parameterExtractor.extractParameter(req, "id", false, Long::parseLong);
 
         String responseBodyJson;
         if (id == null) {
@@ -127,21 +122,18 @@ public class UserServlet extends HttpServlet {
 
         var updatedUser = userService.update(request.newPassword());
 
-        var response = userDtoConverter.convert(updatedUser);
+        var dto = userDtoConverter.convert(updatedUser);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
         resp.setContentType("application/json");
-        resp.getOutputStream().write(jsonHelper.toJson(response).getBytes(StandardCharsets.UTF_8));
+        jsonHelper.writeBytes(resp.getOutputStream(), dto);
     }
 
     private String findById(long id) {
-        requestParameterValidationService.validateId(id);
-
         var user = userService.findById(id);
 
         var userDto = userDtoConverter.convert(user);
 
-        return jsonHelper.toJson(userDto);
+        return jsonHelper.writeBytes(userDto);
     }
 
     private String findAll() {
@@ -149,6 +141,6 @@ public class UserServlet extends HttpServlet {
 
         var userDtos = userDtoConverter.convertAll(passengers);
 
-        return jsonHelper.toJson(userDtos);
+        return jsonHelper.writeBytes(userDtos);
     }
 }

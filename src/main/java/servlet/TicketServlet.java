@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.ServletConfig;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,19 +19,17 @@ import jakarta.ws.rs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import service.TicketService;
-import util.CurrentUserHolder;
 import util.JsonHelper;
 import validation.service.ValidationService;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import static constant.ServletContextAttributeKey.*;
 
-@WebServlet("/api/v1/ticket")
 @Path("/ticket-app/api/v1/ticket")
 public class TicketServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(TicketServlet.class);
+
     private JsonHelper jsonHelper;
     private TicketService ticketService;
     private ValidationService validationService;
@@ -41,7 +38,7 @@ public class TicketServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) {
-        log.info("Servlet {} initialization started", getClass().getSimpleName());
+        log.debug("Servlet {} initialization started", getClass().getSimpleName());
 
         var context = config.getServletContext();
 
@@ -52,7 +49,7 @@ public class TicketServlet extends HttpServlet {
                 (CreateTicketRequestConverter) context.getAttribute(CREATE_TICKET_REQUEST_CONVERTER);
         ticketDtoConverter = (TicketDtoConverter) context.getAttribute(TICKET_DTO_CONVERTER);
 
-        log.info("Servlet {} initialization finished", getClass().getSimpleName());
+        log.debug("Servlet {} initialization finished", getClass().getSimpleName());
     }
 
     @POST
@@ -69,7 +66,6 @@ public class TicketServlet extends HttpServlet {
     @Override
     public void doPost(@Parameter(hidden = true) HttpServletRequest req,
                        @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-
         var body = new String(req.getInputStream().readAllBytes());
         var request = jsonHelper.fromJson(body, CreateTicketRequest.class);
 
@@ -81,9 +77,8 @@ public class TicketServlet extends HttpServlet {
 
         var dto = ticketDtoConverter.convert(savedTicket);
 
-        resp.setStatus(HttpServletResponse.SC_CREATED);
         resp.setContentType("application/json");
-        resp.getOutputStream().write(jsonHelper.toJson(dto).getBytes(StandardCharsets.UTF_8));
+        jsonHelper.writeBytes(resp.getOutputStream(), dto);
     }
 
     @GET
@@ -97,31 +92,9 @@ public class TicketServlet extends HttpServlet {
     @Override
     public void doGet(@Parameter(hidden = true) HttpServletRequest req,
                       @Parameter(hidden = true) HttpServletResponse resp) throws IOException {
-        String responseBodyJson;
-        if (CurrentUserHolder.isAdmin()) {
-            responseBodyJson = findAll();
-        } else {
-            responseBodyJson = findAllByCurrentUserId();
-        }
+        var dto = ticketService.findAll();
 
-        resp.setStatus(HttpServletResponse.SC_OK);
         resp.setContentType("application/json");
-        resp.getOutputStream().write(responseBodyJson.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private String findAll() {
-        var tickets = ticketService.findAll();
-
-        var ticketDtos = ticketDtoConverter.convertAll(tickets);
-
-        return jsonHelper.toJson(ticketDtos);
-    }
-
-    private String findAllByCurrentUserId() {
-        var tickets = ticketService.findAllByCurrentUserId();
-
-        var ticketDto = ticketDtoConverter.convertAll(tickets);
-
-        return jsonHelper.toJson(ticketDto);
+        jsonHelper.writeBytes(resp.getOutputStream(), dto);
     }
 }

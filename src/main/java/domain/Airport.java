@@ -1,25 +1,20 @@
 package domain;
 
 public class Airport {
-    private String code;
+    private String id;
     private String name;
-    private Address address;
-    private Boolean isWorked;
+    private boolean isActive;
+    private String country;
+    private String city;
+    private String street;
+    private String houseNumber;
 
-    public Address getAddress() {
-        return address;
+    public String getId() {
+        return id;
     }
 
-    public void setAddress(Address address) {
-        this.address = address;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -30,11 +25,43 @@ public class Airport {
         this.name = name;
     }
 
-    public Boolean isWorked() {
-        return isWorked;
+    public boolean isActive() {
+        return isActive;
     }
 
-    public void setWorked(Boolean worked) {
-        isWorked = worked;
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getStreet() {
+        return street;
+    }
+
+    public void setStreet(String street) {
+        this.street = street;
+    }
+
+    public String getHouseNumber() {
+        return houseNumber;
+    }
+
+    public void setHouseNumber(String houseNumber) {
+        this.houseNumber = houseNumber;
     }
 }

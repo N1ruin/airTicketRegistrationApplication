@@ -4,10 +4,10 @@ import java.time.ZonedDateTime;
 
 public class Flight {
     private Long id;
-    private Integer allSeats;
-    private Integer freeSeats;
-    private String departureAirportCode;
-    private String arrivalAirportCode;
+    private int seatsCount;
+    private int freeSeats;
+    private String departureAirportId;
+    private String arrivalAirportId;
     private ZonedDateTime departureDate;
     private ZonedDateTime arrivalDate;
 
@@ -19,19 +19,19 @@ public class Flight {
         this.id = id;
     }
 
-    public Integer getAllSeats() {
-        return allSeats;
+    public int getSeatsCount() {
+        return seatsCount;
     }
 
-    public void setAllSeats(Integer allSeats) {
-        this.allSeats = allSeats;
+    public void setSeatsCount(int seatsCount) {
+        this.seatsCount = seatsCount;
     }
 
-    public Integer getFreeSeats() {
+    public int getFreeSeats() {
         return freeSeats;
     }
 
-    public void setFreeSeats(Integer freeSeats) {
+    public void setFreeSeats(int freeSeats) {
         this.freeSeats = freeSeats;
     }
 
@@ -51,20 +51,19 @@ public class Flight {
         this.arrivalDate = arrivalDate;
     }
 
-    public String getDepartureAirportCode() {
-        return departureAirportCode;
+    public String getDepartureAirportId() {
+        return departureAirportId;
     }
 
-    public void setDepartureAirportCode(String departureAirportCode) {
-        this.departureAirportCode = departureAirportCode;
+    public void setDepartureAirportId(String departureAirportId) {
+        this.departureAirportId = departureAirportId;
     }
 
-    public String getArrivalAirportCode() {
-        return arrivalAirportCode;
+    public String getArrivalAirportId() {
+        return arrivalAirportId;
     }
 
-    public void setArrivalAirportCode(String arrivalAirportCode) {
-        this.arrivalAirportCode = arrivalAirportCode;
+    public void setArrivalAirportId(String arrivalAirportId) {
+        this.arrivalAirportId = arrivalAirportId;
     }
-
 }

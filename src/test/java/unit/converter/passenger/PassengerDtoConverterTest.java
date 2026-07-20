@@ -2,7 +2,6 @@ package unit.converter.passenger;
 
 import converter.passenger.PassengerDtoConverter;
 import domain.Passenger;
-import domain.Passport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;

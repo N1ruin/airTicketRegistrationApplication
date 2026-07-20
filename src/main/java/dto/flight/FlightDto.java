@@ -12,16 +12,16 @@ public record FlightDto(
         Long id,
 
         @Schema(description = "Общее количество мест", example = "150")
-        Integer allSeats,
+        int seatsCount,
 
         @Schema(description = "Количество свободных мест", example = "45")
-        Integer freeSeats,
+        int freeSeats,
 
-        @Schema(description = "Код аэропорта вылета")
-        String departureAirportCode,
+        @Schema(description = "ID аэропорта вылета")
+        String departureAirportId,
 
-        @Schema(description = "Код аэропорта прибытия")
-        String arrivalAirportCode,
+        @Schema(description = "ID аэропорта прибытия")
+        String arrivalAirportId,
 
         @Schema(description = "Дата и время вылета",
                 example = "2024-11-20T12:00:00+03:00",

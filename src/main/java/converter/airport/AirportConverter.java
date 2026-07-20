@@ -7,8 +7,12 @@ import converter.Converter;
 public class AirportConverter implements Converter<Airport, AirportDto> {
     @Override
     public AirportDto convert(Airport airport) {
-        var addressId = airport.getAddress().getId();
-
-        return new AirportDto(airport.getCode(), airport.getName(), addressId);
+        return new AirportDto(
+                airport.getId(),
+                airport.getName(),
+                airport.getCountry(),
+                airport.getCity(),
+                airport.getStreet(),
+                airport.getHouseNumber());
     }
 }

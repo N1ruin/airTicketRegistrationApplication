@@ -11,10 +11,10 @@ public class TicketResultSetMapper implements ResultSetMapper<Ticket> {
     @Override
     public Optional<Ticket> mapRow(ResultSet resultSet) throws SQLException {
         var ticket = new Ticket();
-        ticket.setId(resultSet.getLong("ticket_id"));
-        ticket.setTicketNumber(resultSet.getLong("ticket_number"));
-        ticket.setTicketStatus(TicketStatus.valueOf(resultSet.getString("ticket_status")));
-        ticket.setTicketRank(TicketRank.valueOf(resultSet.getString("ticket_rank")));
+        ticket.setId(resultSet.getLong("id"));
+        ticket.setTicketNumber(resultSet.getLong("number"));
+        ticket.setTicketStatus(TicketStatus.valueOf(resultSet.getString("status")));
+        ticket.setTicketRank(TicketRank.valueOf(resultSet.getString("rank")));
         ticket.setSeatNumber(resultSet.getInt("seat_number"));
         ticket.setPurchaseDate(resultSet.getObject("purchase_date", ZonedDateTime.class));
         ticket.setUpdatedDate(resultSet.getObject("updated_date", ZonedDateTime.class));
